@@ -288,4 +288,17 @@ public class BoardManager : MonoBehaviour
     {
         PlacePiece(pieceGameObj, moveToIndex, pieceToMove.pieceColor, pieceToMove.pieceType);
     }
+
+    public void UpdatePiecesBitboards()
+    {
+        // Combine all white pieces
+        whitePieces.SetBitboard(whitePawns.GetBitboard() | whiteRooks.GetBitboard() | whiteKnights.GetBitboard() | whiteBishops.GetBitboard() | whiteQueens.GetBitboard() | whiteKing.GetBitboard());
+
+        // Combine all black pieces
+        blackPieces.SetBitboard(blackPawns.GetBitboard() | blackRooks.GetBitboard() | blackKnights.GetBitboard() | blackBishops.GetBitboard() | blackQueens.GetBitboard() | blackKing.GetBitboard());
+
+        // Combine all pieces to get occupied squares
+        occupiedSquares.SetBitboard(whitePieces.GetBitboard() | blackPieces.GetBitboard());
+    }
+
 }

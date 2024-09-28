@@ -162,7 +162,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
                         dropOnSquare.OnDrop(eventData);
                         targetSquare = dropOnSquare;
-                        originalSquare = null;
                         break;
                     }
                 }
@@ -173,6 +172,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     {
                         Debug.Log("Another piece found: " + otherPiece.pieceType);
                         Destroy(otherPiece.gameObject);
+                        // remove on bitboard
 
                         List<RaycastResult> raycastSquare = new List<RaycastResult>();
                         EventSystem.current.RaycastAll(pointerData, raycastSquare);
@@ -202,7 +202,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     }
                 }
             }
-            boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
             foreach (Square sq in boardManager.highlightedSquares)
             {
                 sq.spriteRenderer.color = sq.color;
