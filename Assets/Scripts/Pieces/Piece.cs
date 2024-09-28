@@ -23,7 +23,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     protected Square originalSquare;
     protected Square targetSquare;
     protected bool canDrag;
-    protected List<Square> legalSquares = new List<Square>();
 
     public virtual void Start()
     {
@@ -38,12 +37,12 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
             if (boardManager == null)
             {
-                Debug.LogError("The BoardManager script was not found on the object with the 'BoardManager' tag.");
+                Debug.Log("The BoardManager script was not found on the object with the 'BoardManager' tag.");
             }
         }
         else
         {
-            Debug.LogError("No GameObject found with the 'BoardManager' tag!");
+            Debug.Log("No GameObject found with the 'BoardManager' tag!");
         }
         mainCamera = Camera.main;
     }
@@ -76,31 +75,24 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             if (result.gameObject.CompareTag("Square"))
             {
                 Square square = result.gameObject.GetComponent<Square>();
-                if (square != null && square.occupiedPiece == this)
+                if (square != null && square.occupiedPiece == this && (square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
                 {
-                    if ((square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove) || (square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
-                    {
-                        originalSquare = square;
-                        Debug.Log("Original square recorded: " + originalSquare.name);
-                        boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
-                        canDrag = true;
-
-                        findLegalSquares();
-                    }
-                    else
-                    {
-                        Debug.LogError("It's not your time");
-                        canDrag = false;
-                    }
-                    break;
+                    originalSquare = square;
+                    Debug.Log("Original square recorded: " + originalSquare.name);
+                    canDrag = true;
                 }
+                else
+                {
+                    canDrag = false;
+                }
+                break;
             }
         }
     }
 
 
     // Called when dragging starts
-    public void OnBeginDrag(PointerEventData eventData)
+    public virtual void OnBeginDrag(PointerEventData eventData)
     {
         if (canDrag)
         {
@@ -109,10 +101,14 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             canvasGroup.alpha = .8f;
             canvasGroup.blocksRaycasts = false;
         }
+        else
+        {
+            Debug.Log("It's not your time");
+        }
     }
 
     // Called during dragging
-    public void OnDrag(PointerEventData eventData)
+    public virtual void OnDrag(PointerEventData eventData)
     {
         if (canDrag)
         {
@@ -146,7 +142,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     dropOnSquare = result.gameObject.GetComponent<Square>();
                     if (dropOnSquare != null)
                     {
-                        Debug.Log("Dropped on square: " + dropOnSquare.name);
 
                         // Check if there is already a piece on the target square
                         if (dropOnSquare.occupiedPiece != null && dropOnSquare.occupiedPiece != this)
@@ -162,12 +157,12 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         dropOnSquare.occupiedPiece = this;
                         if (originalSquare != null)
                         {
-                            originalSquare.occupiedPiece = null; // Ensure originalSquare is not null
+                            originalSquare.occupiedPiece = null;
                         }
 
                         dropOnSquare.OnDrop(eventData);
-                        targetSquare = dropOnSquare; // Ensure targetSquare is assigned
-                        originalSquare = null; // Reset original square if necessary
+                        targetSquare = dropOnSquare;
+                        originalSquare = null;
                         break;
                     }
                 }
@@ -207,18 +202,18 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     }
                 }
             }
+            boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
+            foreach (Square sq in boardManager.highlightedSquares)
+            {
+                sq.spriteRenderer.color = sq.color;
+            }
         }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         Debug.Log("Piece clicked");
-
         // original square already  stored in on mouse down event
     }
 
-    public virtual List<Square> findLegalSquares()
-    {
-        return legalSquares;
-    }
 }

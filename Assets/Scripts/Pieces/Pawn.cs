@@ -6,7 +6,6 @@ using UnityEngine.EventSystems;
 public class Pawn : Piece
 {
     Bitboard myPawns;
-    bool isEnPassant = false;
     public override void Start()
     {
         base.Start();
@@ -19,6 +18,7 @@ public class Pawn : Piece
         if (canDrag && originalSquare != null)
         {
             myPawns.RemoveAtIndex(originalSquare.index);
+            findLegalSquares();
 
             // check if the square is in legal squares
         }
@@ -27,36 +27,61 @@ public class Pawn : Piece
     public override void OnEndDrag(PointerEventData eventData)
     {
         base.OnEndDrag(eventData);
-        myPawns.AddAtIndex(targetSquare.index);
+        if (canDrag)
+        {
+            myPawns.AddAtIndex(targetSquare.index);
+            findLegalSquares();
+        }
+    }
 
+    public override void OnBeginDrag(PointerEventData eventData)
+    {
+        base.OnBeginDrag(eventData);
+        if (canDrag)
+        {
+            findLegalSquares();
+        }
+    }
+
+    public override void OnDrag(PointerEventData eventData)
+    {
+        base.OnDrag(eventData);
+        if (canDrag)
+        {
+            findLegalSquares();
+        }
     }
 
 
-    public override List<Square> findLegalSquares()
+    public void findLegalSquares()
     {
-        base.findLegalSquares();
-        Debug.Log("Finding legal squares to move to");
-        int originalIndex = originalSquare.index;
-        Square targetSquareByIndex;
-
-        if (boardManager.gameManager.isWhiteToMove)
+        if (canDrag && originalSquare != null)
         {
-            if (originalIndex > 7 && originalIndex < 16)
-            {
-                for (int i = originalIndex; i < 2; i++)
-                {
-                    targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(i + 8);
-                    boardManager.HighlightSquare(targetSquareByIndex);
-                    Debug.Log(targetSquareByIndex.index);
-                    legalSquares.Add(targetSquareByIndex);
-                }
+            int originalIndex = originalSquare.index;
+            Square targetSquareByIndex;
 
-            } else{
-                targetSquareByIndex =boardManager.gameManager.FindSquareByIndex(originalIndex + 8);
+            if (boardManager.gameManager.isWhiteToMove)
+            {
+                targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex + 8);
                 boardManager.HighlightSquare(targetSquareByIndex);
-                legalSquares.Add(targetSquareByIndex);
+                if (originalIndex > 7 && originalIndex < 16)
+                {
+                    targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex + 16);
+                    boardManager.HighlightSquare(targetSquareByIndex);
+
+                }
+            }
+            else
+            {
+                targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex - 8);
+                boardManager.HighlightSquare(targetSquareByIndex);
+                if (originalIndex > 47 && originalIndex < 56)
+                {
+                    targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex - 16);
+                    boardManager.HighlightSquare(targetSquareByIndex);
+
+                }
             }
         }
-        return legalSquares;
     }
 }
