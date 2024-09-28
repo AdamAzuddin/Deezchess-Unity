@@ -1,0 +1,101 @@
+# This .gitignore file should be placed at the root of your Unity project directory
+
+# Ignore system-specific files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*.swo
+*.lock
+
+# Ignore Visual Studio files
+.vscode/
+.vs/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+
+# Unity specific folders and files to ignore
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Mm]etadata/
+[Uu]ser[Ss]ettings/
+Assets/AssetStoreTools*
+
+# Ignore auto-generated asset files
+*.pidb.meta
+*.pidb
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# Ignore crash reports and temporary data
+sysinfo.txt
+*.stacktrace
+
+# Ignore files related to Lightmaps and GI caches
+/[Ll]ightmapSnapshot
+/[Gg]I/Cache/
+
+# Ignore asset-related files that don't need versioning
+/[Aa]ssets/Plugins/Editor/JetBrains*
+/[Aa]ssets/Plugins/Editor/*.dll
+/[Aa]ssets/StreamingAssets/*.meta
+
+# Ignore builds
+/[Bb]uilds/
+/[Bb]uild/
+/[Bb]uilds/**/*.apk
+/[Bb]uilds/**/*.aab
+/[Bb]uilds/**/*.exe
+/[Bb]uilds/**/*.app
+/[Bb]uilds/**/*.xcodeproj
+
+# Ignore Oculus plugin folders (if using VR)
+/[Aa]ssets/Oculus/VR/Editor/Build*
+
+# Unity Explorer generated files
+/Explorer*
+
+# Ignore Unity Collaborate files
+/[Cc]ollab/
+
+# Ignore localization files
+/[Ll]ocalization/
+
+# Ignore npm related files (if using Node.js in Unity project)
+/node_modules/
+
+# Ignore temporary script-related files
+*.csproj
+*.unityproj
+*.pidb.meta
+*.pidb
+*.userprefs
+*.tmp
+
+# Ignore Unity Cloud Build settings
+/[Uu]ser[Ss]ettings/UnityConnectSettings.asset
+
+# Ignore Android/Gradle files
+.gradle
+*.apk
+*.aab
+*/Android/UnityAdsCache/*
+*/Android/libraries/unity-ads-cache-library/libs/unityads-cache-release.aar
+*/Android/libraries/unity-ads-cache-library/UnityAdsCache.java

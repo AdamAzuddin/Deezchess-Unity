@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 12c3aefeaf75a8e488da875219425773
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - squarePrefab: {fileID: 1269350528301391851, guid: a3c291f2355c6c84a8ccc0f6e2b84977, type: 3}
+  - pawnPrefab: {fileID: 8335563693368416674, guid: a4dc96adc7734474083b5265a2d90587, type: 3}
+  - rookPrefab: {fileID: 8612674742654814400, guid: 15ef12a95f6711646949717f1944890d, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
