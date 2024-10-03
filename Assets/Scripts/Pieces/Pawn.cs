@@ -33,7 +33,7 @@ public class Pawn : Piece
     public override void OnEndDrag(PointerEventData eventData)
     {
         base.OnEndDrag(eventData);
-        if (canDrag)
+        if (canDrag && targetSquare != null)
         {
             myPawns.AddAtIndex(targetSquare.index);
             myPawns.PrintBitboardInRowsAndColumns();
@@ -42,7 +42,6 @@ public class Pawn : Piece
             myPawns = boardManager.gameManager.isWhiteToMove ? boardManager.whitePawns : boardManager.blackPawns;
             enemyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.blackPieces : boardManager.whitePieces;
             friendlyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.whitePieces : boardManager.blackPieces;
-
             //findLegalSquares();
         }
 

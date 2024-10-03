@@ -140,7 +140,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 if (result.gameObject.CompareTag("Square"))
                 {
                     dropOnSquare = result.gameObject.GetComponent<Square>();
-                    if (dropOnSquare != null)
+                    if (dropOnSquare != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
                     {
 
                         // Check if there is already a piece on the target square
@@ -164,6 +164,11 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         targetSquare = dropOnSquare;
                         break;
                     }
+                    else
+                    {
+                        transform.position = originalSquare.transform.position;
+                        targetSquare = null;
+                    }
                 }
                 else if (result.gameObject.CompareTag("Piece") && result.gameObject != gameObject)
                 {
@@ -182,7 +187,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                             if (squareResult.gameObject.CompareTag("Square"))
                             {
                                 Square square = squareResult.gameObject.GetComponent<Square>();
-                                if (square != null)
+                                if (square != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
                                 {
                                     Debug.Log("Snapping piece to square: " + square.name);
 
@@ -196,6 +201,11 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                     }
                                     square.OnDrop(eventData);
                                     break;
+                                }
+                                else
+                                {
+                                    transform.position = originalSquare.transform.position;
+                                    targetSquare = null;
                                 }
                             }
                         }
