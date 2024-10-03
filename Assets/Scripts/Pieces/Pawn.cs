@@ -25,8 +25,6 @@ public class Pawn : Piece
             myPawns.RemoveAtIndex(originalSquare.index);
             boardManager.UpdatePiecesBitboards();
             findLegalSquares();
-
-            // check if the square is in legal squares
         }
     }
 
@@ -36,13 +34,8 @@ public class Pawn : Piece
         if (canDrag && targetSquare != null)
         {
             myPawns.AddAtIndex(targetSquare.index);
-            myPawns.PrintBitboardInRowsAndColumns();
             boardManager.UpdatePiecesBitboards();
             boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
-            myPawns = boardManager.gameManager.isWhiteToMove ? boardManager.whitePawns : boardManager.blackPawns;
-            enemyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.blackPieces : boardManager.whitePieces;
-            friendlyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.whitePieces : boardManager.blackPieces;
-            //findLegalSquares();
         }
 
     }

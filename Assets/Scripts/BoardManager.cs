@@ -51,6 +51,25 @@ public class BoardManager : MonoBehaviour
     public Bitboard whitePieces = new Bitboard();
     public Bitboard blackPieces = new Bitboard();
 
+
+    public ulong FILE_A_MASK;
+    public ulong FILE_B_MASK;
+    public ulong FILE_C_MASK;
+    public ulong FILE_D_MASK;
+    public ulong FILE_E_MASK;
+    public ulong FILE_F_MASK;
+    public ulong FILE_G_MASK;
+    public ulong FILE_H_MASK;
+    public ulong RANK_1_MASK;
+    public ulong RANK_2_MASK;
+    public ulong RANK_3_MASK;
+    public ulong RANK_4_MASK;
+    public ulong RANK_5_MASK;
+    public ulong RANK_6_MASK;
+    public ulong RANK_7_MASK;
+    public ulong RANK_8_MASK;
+    public ulong boardEdgeMask;
+
     public int numOfMovesWithoutCaptureOrCheck = 0;
     public bool whiteCanShortCastle = true;
     public bool whiteCanLongCastle = true;
@@ -83,6 +102,7 @@ public class BoardManager : MonoBehaviour
     {
         InitializeBoard();
         InitializeBitboards();
+        initializeFilesAndRanks();
         PlacePieces();
         gameManager = FindObjectOfType<GameManager>();
         gameManager.isWhiteToMove = true;
@@ -167,6 +187,30 @@ public class BoardManager : MonoBehaviour
         whiteCanLongCastle = true;
         blackCanShortCastle = true;
         blackCanLongCastle = true;
+    }
+
+    public void initializeFilesAndRanks()
+    {
+
+        FILE_A_MASK = 0x0101010101010101UL;
+        FILE_B_MASK = 0x0202020202020202UL;
+        FILE_C_MASK = 0x0404040404040404UL;
+        FILE_D_MASK = 0x0808080808080808UL;
+        FILE_E_MASK = 0x1010101010101010UL;
+        FILE_F_MASK = 0x2020202020202020UL;
+        FILE_G_MASK = 0x4040404040404040UL;
+        FILE_H_MASK = 0x8080808080808080UL;
+
+        RANK_1_MASK = 0x00000000000000FFUL;
+        RANK_2_MASK = 0x000000000000FF00UL;
+        RANK_3_MASK = 0x0000000000FF0000UL;
+        RANK_4_MASK = 0x00000000FF000000UL;
+        RANK_5_MASK = 0x000000FF00000000UL;
+        RANK_6_MASK = 0x0000FF0000000000UL;
+        RANK_7_MASK = 0x00FF000000000000UL;
+        RANK_8_MASK = 0xFF00000000000000UL;
+
+        boardEdgeMask = FILE_A_MASK | RANK_8_MASK | FILE_H_MASK | RANK_1_MASK;
     }
 
     // Method to place pieces on the board by index
@@ -262,21 +306,17 @@ public class BoardManager : MonoBehaviour
         square.spriteRenderer.color = selectedPieceSquareColor;
         isSelectPieceToMove = true;
     }
-
-    // Method to highlight squares
     public void HighlightSquare(Square square)
     {
         highlightedSquares.Add(square);
         square.spriteRenderer.color = Color.red;
     }
-
-    // Deselect a square
     public void DeselectPiece()
     {
         pieceToMoveSquare.spriteRenderer.color = pieceToMoveSquare.color;
         foreach (Square sq in highlightedSquares)
         {
-            sq.spriteRenderer.color = sq.color; // Reset to original color
+            sq.spriteRenderer.color = sq.color;
         }
         highlightedSquares.Clear();
         pieceToMoveSquare = null;

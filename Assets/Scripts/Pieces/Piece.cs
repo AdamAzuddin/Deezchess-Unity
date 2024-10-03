@@ -78,7 +78,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 if (square != null && square.occupiedPiece == this && (square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
                 {
                     originalSquare = square;
-                    Debug.Log("Original square recorded: " + originalSquare.name);
                     canDrag = true;
                 }
                 else
@@ -96,9 +95,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     {
         if (canDrag)
         {
-
-            Debug.Log("Drag started on");
-            canvasGroup.alpha = .8f;
             canvasGroup.blocksRaycasts = false;
         }
         else
@@ -142,18 +138,8 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     dropOnSquare = result.gameObject.GetComponent<Square>();
                     if (dropOnSquare != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
                     {
-
-                        // Check if there is already a piece on the target square
-                        if (dropOnSquare.occupiedPiece != null && dropOnSquare.occupiedPiece != this)
-                        {
-                            Debug.Log("Destroying piece currently in this square");
-                            Destroy(dropOnSquare.occupiedPiece.gameObject);
-                        }
-
-                        // Snap to the target square's position
                         transform.position = dropOnSquare.transform.position;
 
-                        // Update occupied pieces
                         dropOnSquare.occupiedPiece = this;
                         if (originalSquare != null)
                         {
@@ -168,16 +154,17 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     {
                         transform.position = originalSquare.transform.position;
                         targetSquare = null;
+                        break;
                     }
                 }
                 else if (result.gameObject.CompareTag("Piece") && result.gameObject != gameObject)
                 {
                     Piece otherPiece = result.gameObject.GetComponent<Piece>();
-                    if (otherPiece != null)
+                    if (otherPiece != null && ((boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.White) || (!boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.Black)))
                     {
-                        Debug.Log("Another piece found: " + otherPiece.pieceType);
+                        Bitboard piecesToBeTakenBitboard = new Bitboard();
+
                         Destroy(otherPiece.gameObject);
-                        // remove on bitboard
 
                         List<RaycastResult> raycastSquare = new List<RaycastResult>();
                         EventSystem.current.RaycastAll(pointerData, raycastSquare);
@@ -187,35 +174,68 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                             if (squareResult.gameObject.CompareTag("Square"))
                             {
                                 Square square = squareResult.gameObject.GetComponent<Square>();
-                                if (square != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
+                                if (square != null && square.color != square.spriteRenderer.color)
                                 {
-                                    Debug.Log("Snapping piece to square: " + square.name);
 
-                                    // Snap the piece to the center of this square
+                                    switch (otherPiece.pieceType)
+                                    {
+                                        case PieceType.Pawn:
+                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackPawns : boardManager.whitePawns;
+                                            break;
+                                        case PieceType.Rook:
+                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackRooks : boardManager.whiteRooks;
+                                            break;
+                                        case PieceType.Knight:
+                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackKnights : boardManager.whiteKnights;
+                                            break;
+                                        case PieceType.Bishop:
+                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackBishops : boardManager.whiteBishops;
+                                            break;
+                                        case PieceType.Queen:
+                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackQueens : boardManager.whiteQueens;
+                                            break;
+                                        case PieceType.King:
+                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackKing : boardManager.whiteKing;
+                                            break;
+                                    }
+
+
+                                    piecesToBeTakenBitboard.RemoveAtIndex(square.index);
+                                    boardManager.UpdatePiecesBitboards();
                                     transform.position = square.transform.position;
-
                                     square.occupiedPiece = this;
                                     if (originalSquare != null)
                                     {
-                                        originalSquare.occupiedPiece = null; // Avoid accessing null
+                                        originalSquare.occupiedPiece = null;
                                     }
                                     square.OnDrop(eventData);
+                                    targetSquare = square;
                                     break;
                                 }
                                 else
                                 {
                                     transform.position = originalSquare.transform.position;
                                     targetSquare = null;
+                                    break;
                                 }
                             }
                         }
                     }
+                    else
+                    {
+                        transform.position = originalSquare.transform.position;
+                        targetSquare = null;
+                        break;
+                    }
+
                 }
+
             }
             foreach (Square sq in boardManager.highlightedSquares)
             {
                 sq.spriteRenderer.color = sq.color;
-            }
+            }/* 
+            boardManager.highlightedSquares.Clear(); */
         }
     }
 
