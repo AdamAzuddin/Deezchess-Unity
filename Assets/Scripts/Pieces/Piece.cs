@@ -234,15 +234,13 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             foreach (Square sq in boardManager.highlightedSquares)
             {
                 sq.spriteRenderer.color = sq.color;
-            }/* 
-            boardManager.highlightedSquares.Clear(); */
+            }
         }
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         Debug.Log("Piece clicked");
-        // original square already  stored in on mouse down event
     }
 
 }

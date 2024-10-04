@@ -1,14 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using UnityEditor.Purchasing;
-using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class Knight : Piece
 {
     Bitboard myKnights;
-    Bitboard enemyPieces;
     Bitboard friendlyPieces;
     public override void Start()
     {
@@ -20,7 +15,6 @@ public class Knight : Piece
         // get bitboard
 
         myKnights = boardManager.gameManager.isWhiteToMove ? boardManager.whiteKnights : boardManager.blackKnights;
-        enemyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.blackPieces : boardManager.whitePieces;
         friendlyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.whitePieces : boardManager.blackPieces;
         // get bitboard
         if (canDrag && originalSquare.occupiedPiece != null)
@@ -56,7 +50,7 @@ public class Knight : Piece
         Bitboard possibleMoves = new Bitboard();
         if (canDrag && originalSquare != null)
         {
-            possibleMoves.SetBitboard(generateKnightMovementMask() & ~friendlyPieces.GetBitboard());
+            possibleMoves.SetBitboard(GenerateKnightMovementMask() & ~friendlyPieces.GetBitboard());
             List<int> possibleSquaresIndices = possibleMoves.GetIndicesOfPieces();
             foreach (int index in possibleSquaresIndices)
             {
@@ -68,7 +62,7 @@ public class Knight : Piece
         }
     }
 
-    public ulong generateKnightMovementMask()
+    public ulong GenerateKnightMovementMask()
     {
         int knightIndex = originalSquare.index;
         ulong knightMask = 1UL << knightIndex;
