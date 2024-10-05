@@ -165,6 +165,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         Bitboard piecesToBeTakenBitboard = new Bitboard();
 
                         Destroy(otherPiece.gameObject);
+                        Debug.Log("Other piece deleted");
 
                         List<RaycastResult> raycastSquare = new List<RaycastResult>();
                         EventSystem.current.RaycastAll(pointerData, raycastSquare);
@@ -198,8 +199,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                             piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackKing : boardManager.whiteKing;
                                             break;
                                     }
-
-
                                     piecesToBeTakenBitboard.RemoveAtIndex(square.index);
                                     boardManager.UpdatePiecesBitboards();
                                     transform.position = square.transform.position;

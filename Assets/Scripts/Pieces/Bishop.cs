@@ -61,8 +61,6 @@ public class Bishop : Piece
                 targetSquare = boardManager.gameManager.FindSquareByIndex(index);
                 boardManager.HighlightSquare(targetSquare);
             }
-
-
         }
     }
 
