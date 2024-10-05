@@ -100,11 +100,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   pieceType: 0
-  pieceColor: 0
+  pieceColor: 1
   currentPos: {x: 0, y: 0}
   currentX: 0
   currentY: 0
-  boardManager: {fileID: 0}
 --- !u!61 &2186532641289483178
 BoxCollider2D:
   m_ObjectHideFlags: 0

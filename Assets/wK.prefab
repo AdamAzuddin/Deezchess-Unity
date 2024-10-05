@@ -99,12 +99,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eae641047ba8a8549ac7549c690833c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pieceType: 0
+  pieceType: 5
   pieceColor: 0
   currentPos: {x: 0, y: 0}
   currentX: 0
   currentY: 0
-  boardManager: {fileID: 0}
 --- !u!61 &48850814033261768
 BoxCollider2D:
   m_ObjectHideFlags: 0
