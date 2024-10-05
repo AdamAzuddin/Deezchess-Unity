@@ -48,38 +48,11 @@ public class King : Piece
             boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
         }
     }
-
-    public void PrintBitboardInGrid(ulong bitboard)
-    {
-        for (int rank = 7; rank >= 0; rank--) // Start from rank 7 (top of the board) to rank 0
-        {
-            string line = "";
-            for (int file = 0; file < 8; file++)
-            {
-                int square = rank * 8 + file; // Calculate square index
-                line += ((bitboard & (1UL << square)) != 0) ? "1 " : "0 "; // Print 1 for set bits, 0 for unset bits
-            }
-            Debug.Log(line); // Print each rank
-        }
-    }
-
-    public void PrintKingAttackTable()
-    {
-        for (int i = 0; i < boardManager.kingAttackTable.Length; i++)
-        {
-            Debug.Log($"King attack mask for square {i}:");
-            PrintBitboardInGrid(boardManager.kingAttackTable[i]);
-            Debug.Log("------------------------");
-        }
-    }
-
-
     public void findLegalSquares()
     {
         Bitboard possibleMoves = new Bitboard();
         if (canDrag && originalSquare != null)
         {
-            PrintKingAttackTable();
             possibleMoves.SetBitboard(boardManager.kingAttackTable[originalSquare.index] & ~friendlyPieces.GetBitboard());
             List<int> possibleSquaresIndices = possibleMoves.GetIndicesOfPieces();
             foreach (int index in possibleSquaresIndices)

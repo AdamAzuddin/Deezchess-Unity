@@ -27,8 +27,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     public virtual void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
-
-        // Find the BoardManager by its tag
         GameObject boardManagerObject = GameObject.FindGameObjectWithTag("BoardManager");
 
         if (boardManagerObject != null)
@@ -52,18 +50,12 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
         canvasGroup = GetComponent<CanvasGroup>();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-    }
     public virtual void OnPointerDown(PointerEventData eventData)
     {
-        // Capture the offset between the piece's position and the mouse position
         Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(eventData.position);
         mouseWorldPos.z = 0;
         offset = transform.position - mouseWorldPos;
 
-        // Perform a raycast to determine the square where the piece is currently located
         PointerEventData pointerData = new PointerEventData(EventSystem.current);
         pointerData.position = Input.mousePosition;
 
@@ -88,9 +80,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             }
         }
     }
-
-
-    // Called when dragging starts
     public virtual void OnBeginDrag(PointerEventData eventData)
     {
         if (canDrag)
@@ -102,8 +91,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             Debug.Log("It's not your time");
         }
     }
-
-    // Called during dragging
     public virtual void OnDrag(PointerEventData eventData)
     {
         if (canDrag)
@@ -113,23 +100,19 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             transform.position = mouseWorldPos + offset;
         }
     }
-
-    // Called when dragging ends
     public virtual void OnEndDrag(PointerEventData eventData)
     {
         if (canDrag)
         {
             canvasGroup.alpha = 1f;
             canvasGroup.blocksRaycasts = true;
-
-            // Check where the piece was dropped
             PointerEventData pointerData = new PointerEventData(EventSystem.current);
             pointerData.position = Input.mousePosition;
 
             List<RaycastResult> raycastResults = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointerData, raycastResults);
 
-            Square dropOnSquare = null; // Ensure it is defined
+            Square dropOnSquare = null;
 
             foreach (RaycastResult result in raycastResults)
             {
