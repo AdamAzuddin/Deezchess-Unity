@@ -69,6 +69,8 @@ public class BoardManager : MonoBehaviour
     public ulong RANK_7_MASK;
     public ulong RANK_8_MASK;
     public ulong boardEdgeMask;
+    public ulong[] kingAttackTable = new ulong[64];
+
 
     public int numOfMovesWithoutCaptureOrCheck = 0;
     public bool whiteCanShortCastle = true;
@@ -104,6 +106,7 @@ public class BoardManager : MonoBehaviour
         InitializeBitboards();
         initializeFilesAndRanks();
         PlacePieces();
+        InitializeKingAttackMasks();
         gameManager = FindObjectOfType<GameManager>();
         gameManager.isWhiteToMove = true;
         if (gameManager == null)
@@ -212,6 +215,27 @@ public class BoardManager : MonoBehaviour
 
         boardEdgeMask = FILE_A_MASK | RANK_8_MASK | FILE_H_MASK | RANK_1_MASK;
     }
+
+    public void InitializeKingAttackMasks()
+    {
+        for (int square = 0; square < 64; square++)
+        {
+            ulong kingBitboard = 1UL << square;
+            ulong attacks = 0;
+
+            attacks |= (kingBitboard << 8);                // north
+            attacks |= (kingBitboard >> 8);                // south
+            attacks |= (kingBitboard & ~FILE_A_MASK) >> 1; // west
+            attacks |= (kingBitboard & ~FILE_H_MASK) << 1; // east
+            attacks |= (kingBitboard & ~FILE_A_MASK) << 7; // north-west
+            attacks |= (kingBitboard & ~FILE_H_MASK) << 9; // north-east
+            attacks |= (kingBitboard & ~FILE_A_MASK) >> 9; // south-west
+            attacks |= (kingBitboard & ~FILE_H_MASK) >> 7; // south-east
+
+            kingAttackTable[square] = attacks;
+        }
+    }
+
 
     // Method to place pieces on the board by index
     void PlacePieces()
