@@ -39,9 +39,9 @@ public class Pawn : Piece
     {
         base.OnEndDrag(eventData);
         int originalIndex = originalSquare.index;
-        int targetIndex = targetSquare.index;
         if (canDrag && targetSquare != null)
         {
+            int targetIndex = targetSquare.index;
             myPawns.AddAtIndex(targetSquare.index);
             boardManager.UpdatePiecesBitboards();
             if (boardManager.gameManager.isWhiteToMove)
@@ -89,8 +89,6 @@ public class Pawn : Piece
 
     public void findLegalSquares()
     {
-        ulong possibleCaptureNorthEast = 0;
-        ulong possibleCaptureNorthWest = 0;
         if (canDrag && originalSquare != null)
         {
             int originalIndex = originalSquare.index;
@@ -111,8 +109,8 @@ public class Pawn : Piece
                     }
                 }
                 // check for captures
-                possibleCaptureNorthEast = 1UL << (originalIndex + 9);
-                possibleCaptureNorthWest = 1UL << (originalIndex + 7);
+                ulong possibleCaptureNorthEast = 1UL << (originalIndex + 9);
+                ulong possibleCaptureNorthWest = 1UL << (originalIndex + 7);
 
                 if ((enemyPieces.GetBitboard() & possibleCaptureNorthEast) != 0 && ((originalIndex + 1) % 8) != 0)
                 {
@@ -134,18 +132,24 @@ public class Pawn : Piece
                         Debug.Log("You can't en passant a pawn");
                     }
                 }
+
                 if ((enemyPieces.GetBitboard() & possibleCaptureNorthWest) != 0 && (originalIndex % 8) != 0)
                 {
                     targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex + 7);
                     boardManager.HighlightSquare(targetSquareByIndex);
                 }
-                else if ((enemyPieces.GetBitboard() & possibleCaptureNorthEast) == 0 && (enemyPawns.GetBitboard() & 1UL << (originalIndex - 1)) != 0 && boardManager.gameManager.FindSquareByIndex(originalIndex - 1).occupiedPiece.pieceType == PieceType.Pawn && boardManager.gameManager.FindSquareByIndex(originalIndex + 1).occupiedPiece.pieceColor == enemyColor && (originalIndex % 8) != 0)
+
+                if ((enemyPieces.GetBitboard() & possibleCaptureNorthWest) == 0 && (enemyPawns.GetBitboard() & 1UL << (originalIndex - 1)) != 0 && boardManager.gameManager.FindSquareByIndex(originalIndex - 1).occupiedPiece.pieceType == PieceType.Pawn && boardManager.gameManager.FindSquareByIndex(originalIndex - 1).occupiedPiece.pieceColor == enemyColor && (originalIndex % 8) != 0)
                 {
-                    enemyPawn = boardManager.gameManager.FindSquareByIndex(originalIndex + 1).occupiedPiece as Pawn;
-                    if (enemyPawn.isEnPassantable)
+                    enemyPawn = boardManager.gameManager.FindSquareByIndex(originalIndex - 1).occupiedPiece as Pawn;
+                    if (enemyPawn.pieceColor != pieceColor && enemyPawn.isEnPassantable)
                     {
-                        targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex + 9);
+                        targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex + 7);
                         boardManager.HighlightSquare(targetSquareByIndex);
+                    }
+                    else
+                    {
+                        Debug.Log("You can't en passant a pawn");
                     }
                 }
 
@@ -167,18 +171,46 @@ public class Pawn : Piece
 
 
                 // check for captures;
-                possibleCaptureNorthEast = 1UL << (originalIndex - 9);
-                possibleCaptureNorthWest = 1UL << (originalIndex - 7);
+                ulong possibleCaptureSouthWest = 1UL << (originalIndex - 9);
+                ulong possibleCaptureSouthEast = 1UL << (originalIndex - 7);
 
-                if ((enemyPieces.GetBitboard() & possibleCaptureNorthEast) != 0 && (originalIndex % 8) != 0)
+                if ((enemyPieces.GetBitboard() & possibleCaptureSouthWest) != 0 && (originalIndex % 8) != 0)
                 {
                     targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex - 9);
                     boardManager.HighlightSquare(targetSquareByIndex);
                 }
-                if ((enemyPieces.GetBitboard() & possibleCaptureNorthWest) != 0 && ((originalIndex + 1) % 8) != 0)
+
+                if ((enemyPieces.GetBitboard() & possibleCaptureSouthWest) == 0 && (enemyPawns.GetBitboard() & 1UL << (originalIndex - 1)) != 0 && boardManager.gameManager.FindSquareByIndex(originalIndex - 1).occupiedPiece.pieceType == PieceType.Pawn && boardManager.gameManager.FindSquareByIndex(originalIndex - 1).occupiedPiece.pieceColor == enemyColor && (originalIndex % 8) != 0)
+                {
+                    enemyPawn = boardManager.gameManager.FindSquareByIndex(originalIndex - 1).occupiedPiece as Pawn;
+                    if (enemyPawn.pieceColor != pieceColor && enemyPawn.isEnPassantable)
+                    {
+                        targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex - 9);
+                        boardManager.HighlightSquare(targetSquareByIndex);
+                    }
+                    else
+                    {
+                        Debug.Log("You can't en passant a pawn");
+                    }
+                }
+
+                if ((enemyPieces.GetBitboard() & possibleCaptureSouthEast) != 0 && ((originalIndex + 1) % 8) != 0)
                 {
                     targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex - 7);
                     boardManager.HighlightSquare(targetSquareByIndex);
+                }
+                if ((enemyPieces.GetBitboard() & possibleCaptureSouthEast) == 0 && (enemyPawns.GetBitboard() & 1UL << (originalIndex + 1)) != 0 && boardManager.gameManager.FindSquareByIndex(originalIndex + 1).occupiedPiece.pieceType == PieceType.Pawn && boardManager.gameManager.FindSquareByIndex(originalIndex + 1).occupiedPiece.pieceColor == enemyColor && ((originalIndex + 1) % 8) != 0)
+                {
+                    enemyPawn = boardManager.gameManager.FindSquareByIndex(originalIndex + 1).occupiedPiece as Pawn;
+                    if (enemyPawn.pieceColor != pieceColor && enemyPawn.isEnPassantable)
+                    {
+                        targetSquareByIndex = boardManager.gameManager.FindSquareByIndex(originalIndex - 7);
+                        boardManager.HighlightSquare(targetSquareByIndex);
+                    }
+                    else
+                    {
+                        Debug.Log("You can't en passant a pawn");
+                    }
                 }
 
             }
