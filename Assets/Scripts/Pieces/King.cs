@@ -48,7 +48,6 @@ public class King : Piece
         if (canDrag && targetSquare != null)
         {
             myKing.AddAtIndex(targetSquare.index);
-            boardManager.UpdatePiecesBitboards();
             canShortCastle = false;
             canLongCastle = false;
             // check if the king is castling
@@ -108,6 +107,8 @@ public class King : Piece
                 }
 
             }
+
+            boardManager.UpdatePiecesBitboards();
             boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
         }
     }

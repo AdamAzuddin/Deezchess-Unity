@@ -43,7 +43,6 @@ public class Pawn : Piece
         {
             int targetIndex = targetSquare.index;
             myPawns.AddAtIndex(targetSquare.index);
-            boardManager.UpdatePiecesBitboards();
             Bitboard enemyPawns = boardManager.gameManager.isWhiteToMove ? boardManager.blackPawns : boardManager.whitePawns;
             Pawn enemyPawnObject;
             if (boardManager.gameManager.isWhiteToMove)
@@ -79,10 +78,8 @@ public class Pawn : Piece
                     Destroy(enemyPawnObject.gameObject);
                 }
             }
+            boardManager.UpdatePiecesBitboards();
             boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
-
-            // can be captured by en passant if move two squares
-
         }
 
     }
