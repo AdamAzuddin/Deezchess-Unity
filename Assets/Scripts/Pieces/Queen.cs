@@ -14,8 +14,6 @@ public class Queen : Piece
     public override void OnPointerDown(PointerEventData eventData)
     {
         base.OnPointerDown(eventData);
-        // get bitboard
-
         myQueens = boardManager.gameManager.isWhiteToMove ? boardManager.whiteQueens : boardManager.blackQueens;
         friendlyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.whitePieces : boardManager.blackPieces;
         enemyPieces = boardManager.gameManager.isWhiteToMove ? boardManager.blackPieces : boardManager.whitePieces;
@@ -53,7 +51,7 @@ public class Queen : Piece
         Bitboard possibleMoves = new Bitboard();
         if (canDrag && originalSquare != null)
         {
-            possibleMoves.SetBitboard(GenerateBishopMovementMask() & ~friendlyPieces.GetBitboard() | GenerateRookMovementMask());
+            possibleMoves.SetBitboard(GenerateBishopMovementMask() | GenerateRookMovementMask() & ~friendlyPieces.GetBitboard());
             List<int> possibleSquaresIndices = possibleMoves.GetIndicesOfPieces();
             foreach (int index in possibleSquaresIndices)
             {
