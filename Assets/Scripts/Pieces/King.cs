@@ -62,16 +62,20 @@ public class King : Piece
                     Square shortCastleRookSquare = boardManager.gameManager.FindSquareByIndex(5);
                     Bitboard myRooks = boardManager.gameManager.isWhiteToMove ? boardManager.whiteRooks : boardManager.blackRooks;
                     myShortCastleRook.transform.position = shortCastleRookSquare.transform.position;
+                    shortCastleRookSquare.occupiedPiece = myShortCastleRook;
+                    boardManager.gameManager.FindSquareByIndex(7).occupiedPiece = null;
                     myRooks.RemoveAtIndex(7);
                     myRooks.AddAtIndex(5);
                 }
                 else if (targetSquare.index == originalSquare.index - 2)
                 {
 
-                    Rook myShortCastleRook = boardManager.gameManager.FindSquareByIndex(0).occupiedPiece as Rook;
-                    Square shortCastleRookSquare = boardManager.gameManager.FindSquareByIndex(3);
+                    Rook myLongCastleRook = boardManager.gameManager.FindSquareByIndex(0).occupiedPiece as Rook;
+                    Square longCastleRookSquare = boardManager.gameManager.FindSquareByIndex(3);
                     Bitboard myRooks = boardManager.gameManager.isWhiteToMove ? boardManager.whiteRooks : boardManager.blackRooks;
-                    myShortCastleRook.transform.position = shortCastleRookSquare.transform.position;
+                    myLongCastleRook.transform.position = longCastleRookSquare.transform.position;
+                    longCastleRookSquare.occupiedPiece = myLongCastleRook;
+                    boardManager.gameManager.FindSquareByIndex(0).occupiedPiece = null;
                     myRooks.RemoveAtIndex(0);
                     myRooks.AddAtIndex(3);
                 }
@@ -86,16 +90,19 @@ public class King : Piece
                     Square shortCastleRookSquare = boardManager.gameManager.FindSquareByIndex(61);
                     Bitboard myRooks = boardManager.gameManager.isWhiteToMove ? boardManager.whiteRooks : boardManager.blackRooks;
                     myShortCastleRook.transform.position = shortCastleRookSquare.transform.position;
+                    shortCastleRookSquare.occupiedPiece = myShortCastleRook;
+                    boardManager.gameManager.FindSquareByIndex(63).occupiedPiece = null;
                     myRooks.RemoveAtIndex(63);
                     myRooks.AddAtIndex(61);
                 }
                 else if (targetSquare.index == originalSquare.index - 2)
                 {
-
-                    Rook myShortCastleRook = boardManager.gameManager.FindSquareByIndex(56).occupiedPiece as Rook;
-                    Square shortCastleRookSquare = boardManager.gameManager.FindSquareByIndex(59);
+                    Rook myLongCastleRook = boardManager.gameManager.FindSquareByIndex(56).occupiedPiece as Rook;
+                    Square longCastleRookSquare = boardManager.gameManager.FindSquareByIndex(59);
                     Bitboard myRooks = boardManager.gameManager.isWhiteToMove ? boardManager.whiteRooks : boardManager.blackRooks;
-                    myShortCastleRook.transform.position = shortCastleRookSquare.transform.position;
+                    myLongCastleRook.transform.position = longCastleRookSquare.transform.position;
+                    longCastleRookSquare.occupiedPiece = myLongCastleRook;
+                    boardManager.gameManager.FindSquareByIndex(56).occupiedPiece = null;
                     myRooks.RemoveAtIndex(56);
                     myRooks.AddAtIndex(59);
                 }

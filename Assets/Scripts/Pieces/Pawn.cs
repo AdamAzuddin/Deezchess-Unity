@@ -58,6 +58,7 @@ public class Pawn : Piece
                 if (enemyPawnObject != null && enemyPawnObject.pieceColor != PieceColor.White)
                 {
                     enemyPawns.RemoveAtIndex(targetSquare.index - 8);
+                    boardManager.gameManager.FindSquareByIndex(targetSquare.index - 8).occupiedPiece = null;
                     Destroy(enemyPawnObject.gameObject);
                 }
             }
@@ -74,6 +75,7 @@ public class Pawn : Piece
                 {
                     // we are capturing en passantly
                     enemyPawns.RemoveAtIndex(targetSquare.index - 8);
+                    boardManager.gameManager.FindSquareByIndex(targetSquare.index + 8).occupiedPiece = null;
                     Destroy(enemyPawnObject.gameObject);
                 }
             }
