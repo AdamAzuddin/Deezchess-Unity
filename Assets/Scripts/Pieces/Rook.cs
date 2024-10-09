@@ -7,8 +7,24 @@ public class Rook : Piece
     Bitboard myRooks;
     Bitboard friendlyPieces;
     Bitboard enemyPieces;
+    King whiteKing;
+    King blackKing;
     public override void Start()
     {
+        King[] kings = FindObjectsOfType<King>();
+
+        foreach (King king in kings)
+        {
+            // Check if the King is of color White
+            if (king.pieceColor == PieceColor.White)
+            {
+                whiteKing = king;
+            }
+            else
+            {
+                blackKing = king;
+            }
+        }
         base.Start();
     }
     public override void OnPointerDown(PointerEventData eventData)
@@ -44,6 +60,30 @@ public class Rook : Piece
         {
             myRooks.AddAtIndex(targetSquare.index);
             boardManager.UpdatePiecesBitboards();
+
+            if (boardManager.gameManager.isWhiteToMove)
+            {
+
+                if (originalSquare.index == 7)
+                {
+                    whiteKing.canShortCastle = false;
+                }
+                if (originalSquare.index == 0)
+                {
+                    whiteKing.canLongCastle = false;
+                }
+            }
+            else
+            {
+                if (originalSquare.index == 63)
+                {
+                    blackKing.canShortCastle = false;
+                }
+                if (originalSquare.index == 56)
+                {
+                    blackKing.canLongCastle = false;
+                }
+            }
             boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
         }
     }

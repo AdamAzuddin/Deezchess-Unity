@@ -25,7 +25,8 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     protected Square originalSquare;
     protected Square targetSquare;
     protected bool canDrag;
-    private Pawn[] allPawns;
+    protected Pawn[] allPawns;
+
 
     public virtual void Start()
     {
@@ -225,8 +226,10 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             {
                 sq.spriteRenderer.color = sq.color;
             }
-            // find all pawns of my color and make sure it cant en passant anymore
+            
             PieceColor myPieceColor = boardManager.gameManager.isWhiteToMove ? PieceColor.White : PieceColor.Black;
+            
+            // find all pawns of my color and make sure it cant en passant anymore
             Pawn[] myPawns = allPawns.Where(pawn => pawn.pieceColor == myPieceColor).ToArray();
 
             foreach (Pawn pawn in myPawns)
