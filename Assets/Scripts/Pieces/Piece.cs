@@ -145,24 +145,33 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         Pawn enemyPawnObject;
                         if (boardManager.gameManager.isWhiteToMove)
                         {
-                            enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index - 8).occupiedPiece as Pawn;
-                            if (enemyPawnObject != null && enemyPawnObject.pieceColor != myPieceColor)
+                            if (pieceType == PieceType.Pawn)
                             {
-                                // we are capturing en passantly
-                                enemyPawns.RemoveAtIndex(targetSquare.index - 8);
-                                Destroy(enemyPawnObject.gameObject);
+                                enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index - 8).occupiedPiece as Pawn;
+                                if (enemyPawnObject != null && enemyPawnObject.pieceColor != myPieceColor)
+                                {
+                                    // we are capturing en passantly
+                                    enemyPawns.RemoveAtIndex(targetSquare.index - 8);
+                                    Destroy(enemyPawnObject.gameObject);
+                                }
                             }
                         }
                         else
                         {
-                            enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index + 8).occupiedPiece as Pawn;
-                            if (enemyPawnObject != null && enemyPawnObject.pieceColor != myPieceColor)
+                            if (pieceType == PieceType.Pawn)
                             {
-                                // we are capturing en passantly
-                                enemyPawns.RemoveAtIndex(targetSquare.index - 8);
-                                Destroy(enemyPawnObject.gameObject);
+                                enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index + 8).occupiedPiece as Pawn;
+                                if (enemyPawnObject != null && enemyPawnObject.pieceColor != myPieceColor)
+                                {
+                                    // we are capturing en passantly
+                                    enemyPawns.RemoveAtIndex(targetSquare.index - 8);
+                                    Destroy(enemyPawnObject.gameObject);
+                                }
                             }
+
                         }
+
+
                         break;
                     }
 
