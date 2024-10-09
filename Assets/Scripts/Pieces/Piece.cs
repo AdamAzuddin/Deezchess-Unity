@@ -108,8 +108,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     }
     public virtual void OnEndDrag(PointerEventData eventData)
     {
-        PieceColor myPieceColor = boardManager.gameManager.isWhiteToMove ? PieceColor.White : PieceColor.Black;
-
         if (canDrag)
         {
             canvasGroup.alpha = 1f;
@@ -139,39 +137,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
                         dropOnSquare.OnDrop(eventData);
                         targetSquare = dropOnSquare;
-
-                        // en passsant case
-                        Bitboard enemyPawns = boardManager.gameManager.isWhiteToMove ? boardManager.blackPawns : boardManager.whitePawns;
-                        Pawn enemyPawnObject;
-                        if (boardManager.gameManager.isWhiteToMove)
-                        {
-                            if (pieceType == PieceType.Pawn)
-                            {
-                                enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index - 8).occupiedPiece as Pawn;
-                                if (enemyPawnObject != null && enemyPawnObject.pieceColor != myPieceColor)
-                                {
-                                    // we are capturing en passantly
-                                    enemyPawns.RemoveAtIndex(targetSquare.index - 8);
-                                    Destroy(enemyPawnObject.gameObject);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            if (pieceType == PieceType.Pawn)
-                            {
-                                enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index + 8).occupiedPiece as Pawn;
-                                if (enemyPawnObject != null && enemyPawnObject.pieceColor != myPieceColor)
-                                {
-                                    // we are capturing en passantly
-                                    enemyPawns.RemoveAtIndex(targetSquare.index - 8);
-                                    Destroy(enemyPawnObject.gameObject);
-                                }
-                            }
-
-                        }
-
-
                         break;
                     }
 
@@ -261,6 +226,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 sq.spriteRenderer.color = sq.color;
             }
             // find all pawns of my color and make sure it cant en passant anymore
+            PieceColor myPieceColor = boardManager.gameManager.isWhiteToMove ? PieceColor.White : PieceColor.Black;
             Pawn[] myPawns = allPawns.Where(pawn => pawn.pieceColor == myPieceColor).ToArray();
 
             foreach (Pawn pawn in myPawns)

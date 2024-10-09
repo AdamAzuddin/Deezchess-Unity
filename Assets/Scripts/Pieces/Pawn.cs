@@ -44,12 +44,21 @@ public class Pawn : Piece
             int targetIndex = targetSquare.index;
             myPawns.AddAtIndex(targetSquare.index);
             boardManager.UpdatePiecesBitboards();
+            Bitboard enemyPawns = boardManager.gameManager.isWhiteToMove ? boardManager.blackPawns : boardManager.whitePawns;
+            Pawn enemyPawnObject;
             if (boardManager.gameManager.isWhiteToMove)
             {
                 if (originalIndex > 7 && originalIndex < 16 && targetIndex == (originalIndex + 16))
                 {
                     isEnPassantable = true;
                     Debug.Log("Your pawn can be captured en passantly");
+                }
+
+                enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index - 8).occupiedPiece as Pawn;
+                if (enemyPawnObject != null && enemyPawnObject.pieceColor != PieceColor.White)
+                {
+                    enemyPawns.RemoveAtIndex(targetSquare.index - 8);
+                    Destroy(enemyPawnObject.gameObject);
                 }
             }
             else
@@ -58,6 +67,14 @@ public class Pawn : Piece
                 {
                     isEnPassantable = true;
                     Debug.Log("Your pawn can be captured en passantly");
+                }
+
+                enemyPawnObject = boardManager.gameManager.FindSquareByIndex(targetSquare.index + 8).occupiedPiece as Pawn;
+                if (enemyPawnObject != null && enemyPawnObject.pieceColor != PieceColor.Black)
+                {
+                    // we are capturing en passantly
+                    enemyPawns.RemoveAtIndex(targetSquare.index - 8);
+                    Destroy(enemyPawnObject.gameObject);
                 }
             }
             boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
