@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -23,6 +25,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     protected Square originalSquare;
     protected Square targetSquare;
     protected bool canDrag;
+    private Pawn[] allPawns;
 
     public virtual void Start()
     {
@@ -43,6 +46,9 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             Debug.Log("No GameObject found with the 'BoardManager' tag!");
         }
         mainCamera = Camera.main;
+
+
+        allPawns = FindObjectsOfType<Pawn>();
     }
 
     private void Awake()
@@ -217,8 +223,21 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             {
                 sq.spriteRenderer.color = sq.color;
             }
+            PieceColor myPieceColor = boardManager.gameManager.isWhiteToMove ? PieceColor.White :  PieceColor.Black;
+
+            // find all pawns of my color and make sure it cant en passant anymore
+            Pawn[] myPawns = allPawns.Where(pawn => pawn.pieceColor == myPieceColor).ToArray();
+
+            foreach (Pawn pawn in myPawns)
+            {
+                if (pawn.isEnPassantable)
+                {
+                    pawn.isEnPassantable = false;
+                }
+            }
         }
     }
+
 
     public void OnPointerClick(PointerEventData eventData)
     {
