@@ -239,6 +239,9 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     pawn.isEnPassantable = false;
                 }
             }
+
+
+            
         }
     }
 
