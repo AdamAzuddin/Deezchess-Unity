@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Lumin;
+using System.Runtime.InteropServices;
+
 
 public class Pawn : Piece
 {
@@ -14,9 +16,22 @@ public class Pawn : Piece
 
     public bool isEnPassantable = false;
     private Pawn enemyPawn;
+
+    #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+    // Declare the DLL function for Windows
+    [DllImport("ChessLogic", CallingConvention = CallingConvention.Cdecl)]
+    public static extern ulong getBitboardValueWrapper();
+
+    #endif
     public override void Start()
     {
         base.Start();
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+        ulong value = getBitboardValueWrapper();
+        Debug.Log("Received value from DLL: " + value);
+        #else
+        Debug.Log("DLL not supported on this platform.");
+        #endif
     }
     public override void OnPointerDown(PointerEventData eventData)
     {

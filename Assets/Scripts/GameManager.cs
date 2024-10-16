@@ -30,8 +30,8 @@ public class GameManager : MonoBehaviour
 
             // Check if the squareComponent is valid and has the desired index
             if (squareComponent != null && squareComponent.index == targetIndex) 
-            {Debug.Log(squareComponent.index);
-                return squareComponent; // Return the matching square
+            {
+                return squareComponent;
             }
         }
 
