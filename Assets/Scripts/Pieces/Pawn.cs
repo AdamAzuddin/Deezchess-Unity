@@ -31,8 +31,8 @@ public class Pawn : Piece
     public override void Start()
     {
         base.Start();
-
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+        
+        #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
         int moveCount;
@@ -51,9 +51,9 @@ public class Pawn : Piece
         {
             Debug.Log("From square index: " + move.from + " To square index: " + move.to);
         }
-#else
+        #else
         Debug.Log("DLL not supported on this platform.");
-#endif
+        #endif
     }
     public override void OnPointerDown(PointerEventData eventData)
     {
