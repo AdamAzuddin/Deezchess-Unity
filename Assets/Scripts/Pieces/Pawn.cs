@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Lumin;
+using System.Runtime.InteropServices;
+using System;
+
 
 public class Pawn : Piece
 {
@@ -14,9 +17,43 @@ public class Pawn : Piece
 
     public bool isEnPassantable = false;
     private Pawn enemyPawn;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MoveIndices
+    {
+        public int from;
+        public int to;
+    }
+
+    [DllImport("ChessLogicMeson", CallingConvention = CallingConvention.Cdecl)]
+    private static extern IntPtr getLegalMoves(string fen, out int moveCount);
+
     public override void Start()
     {
         base.Start();
+
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+        string fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+        int moveCount;
+        IntPtr movesPtr = getLegalMoves(fen, out moveCount);
+
+        // Convert the pointer to an array of MoveIndices structs
+        MoveIndices[] moves = new MoveIndices[moveCount];
+        for (int i = 0; i < moveCount; i++)
+        {
+            IntPtr movePtr = IntPtr.Add(movesPtr, i * Marshal.SizeOf(typeof(MoveIndices)));
+            moves[i] = Marshal.PtrToStructure<MoveIndices>(movePtr);
+        }
+
+        // Display each move's indices in the console
+        foreach (var move in moves)
+        {
+            Debug.Log("From square index: " + move.from + " To square index: " + move.to);
+        }
+#else
+        Debug.Log("DLL not supported on this platform.");
+#endif
     }
     public override void OnPointerDown(PointerEventData eventData)
     {

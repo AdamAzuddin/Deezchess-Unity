@@ -159,6 +159,14 @@ public class BoardManager : MonoBehaviour
         whiteQueens.SetBitboard(0x0000000000000008UL);
         whiteKing.SetBitboard(0x0000000000000010UL);
 
+        // Set each white piece as white
+        whitePawns.SetWhitePiece(true);
+        whiteRooks.SetWhitePiece(true);
+        whiteKnights.SetWhitePiece(true);
+        whiteBishops.SetWhitePiece(true);
+        whiteQueens.SetWhitePiece(true);
+        whiteKing.SetWhitePiece(true);
+
         // Initialize black pieces
         blackPawns.SetBitboard(0x00FF000000000000UL);
         blackRooks.SetBitboard(0x8100000000000000UL);
@@ -167,6 +175,13 @@ public class BoardManager : MonoBehaviour
         blackQueens.SetBitboard(0x0800000000000000UL);
         blackKing.SetBitboard(0x1000000000000000UL);
 
+        // Set each black piece as black
+        blackPawns.SetWhitePiece(false);
+        blackRooks.SetWhitePiece(false);
+        blackKnights.SetWhitePiece(false);
+        blackBishops.SetWhitePiece(false);
+        blackQueens.SetWhitePiece(false);
+        blackKing.SetWhitePiece(false);
         // Combine pieces into collections
         whitePieces.SetBitboard(
             whitePawns.GetBitboard() | whiteRooks.GetBitboard() |
@@ -363,6 +378,417 @@ public class BoardManager : MonoBehaviour
 
         // Combine all pieces to get occupied squares
         occupiedSquares.SetBitboard(whitePieces.GetBitboard() | blackPieces.GetBitboard());
+        UpdateWhiteControlledSquares();
+        UpdateBlackControlledSquares();
     }
+
+
+
+    public void UpdateWhiteControlledSquares()
+    {
+        whiteControlledSquares.SetBitboard(0UL);
+
+        // Calculate control for each white piece type and update the controlled squares
+        whiteControlledSquares.SetBitboard(
+            whiteControlledSquares.GetBitboard() | CalculatePawnAttacks(whitePawns));
+
+        whiteControlledSquares.SetBitboard(
+            whiteControlledSquares.GetBitboard() | CalculateRookAttacks(whiteRooks));
+
+        whiteControlledSquares.SetBitboard(
+            whiteControlledSquares.GetBitboard() | CalculateBishopAttacks(whiteBishops));
+
+        whiteControlledSquares.SetBitboard(
+            whiteControlledSquares.GetBitboard() | CalculateQueenAttacks(whiteQueens));
+
+        whiteControlledSquares.SetBitboard(
+            whiteControlledSquares.GetBitboard() | CalculateKingAttacks(whiteKing));
+
+        whiteControlledSquares.SetBitboard(
+            whiteControlledSquares.GetBitboard() | CalculateKnightAttacks(whiteKnights));
+    }
+
+    public void UpdateBlackControlledSquares()
+    {
+        blackControlledSquares.SetBitboard(0UL);
+
+        // Calculate control for each black piece type and update the controlled squares
+        blackControlledSquares.SetBitboard(
+            blackControlledSquares.GetBitboard() | CalculatePawnAttacks(blackPawns));
+
+        blackControlledSquares.SetBitboard(
+            blackControlledSquares.GetBitboard() | CalculateRookAttacks(blackRooks));
+
+        blackControlledSquares.SetBitboard(
+            blackControlledSquares.GetBitboard() | CalculateBishopAttacks(blackBishops));
+
+        blackControlledSquares.SetBitboard(
+            blackControlledSquares.GetBitboard() | CalculateQueenAttacks(blackQueens));
+
+        blackControlledSquares.SetBitboard(
+            blackControlledSquares.GetBitboard() | CalculateKingAttacks(blackKing));
+
+        blackControlledSquares.SetBitboard(
+            blackControlledSquares.GetBitboard() | CalculateKnightAttacks(blackKnights));
+    }
+
+    // Placeholder methods for calculating attacks
+    public ulong CalculatePawnAttacks(Bitboard pawns)
+    {
+        Bitboard pawnControlledSquare = new Bitboard();
+        pawnControlledSquare.SetBitboard(0UL);
+
+        var friendlyPieces = pawns.IsWhitePiece() ? whitePieces : blackPieces;
+        ulong northEastAttackMask = 0UL;
+        ulong northWestAttackMask = 0UL;
+
+        // Get all pawn positions (indices)
+        List<int> pawnIndices = pawns.GetIndicesOfPieces();
+
+        for (int i = 0; i < pawnIndices.Count; i++)
+        {
+            int pawnIndex = pawnIndices[i];
+
+            // Reset attack masks for each pawn
+            northEastAttackMask = 0UL;
+            northWestAttackMask = 0UL;
+
+            // Check if the pawn is white or black for attack directions
+            if (pawns.IsWhitePiece())
+            {
+                // White pawns attack to the northeast and northwest
+                if (pawnIndex % 8 != 0)  // Not on A-file
+                {
+                    northWestAttackMask = 1UL << (pawnIndex + 7);
+                }
+                if ((pawnIndex + 1) % 8 != 0)  // Not on H-file
+                {
+                    northEastAttackMask = 1UL << (pawnIndex + 9);
+                }
+            }
+            else
+            {
+                // Black pawns attack to the southeast and southwest
+                if (pawnIndex % 8 != 0)  // Not on A-file
+                {
+                    northEastAttackMask = 1UL << (pawnIndex - 7);
+                }
+                if ((pawnIndex + 1) % 8 != 0)  // Not on H-file
+                {
+                    northWestAttackMask = 1UL << (pawnIndex - 9);
+                }
+            }
+
+            // Combine attack masks for this pawn
+            pawnControlledSquare.SetBitboard(
+                pawnControlledSquare.GetBitboard() | northEastAttackMask | northWestAttackMask);
+        }
+
+        // Remove any attacks that fall on friendly pieces
+        ulong attackMask = pawnControlledSquare.GetBitboard();
+        ulong friendlyPiecesMask = friendlyPieces.GetBitboard();
+        pawnControlledSquare.SetBitboard(attackMask & ~friendlyPiecesMask);
+
+        return pawnControlledSquare.GetBitboard();
+    }
+
+
+    public ulong CalculateRookAttacks(Bitboard rooks)
+    {
+        Bitboard rookAttackMask = new Bitboard();
+        rookAttackMask.SetBitboard(0);
+
+        List<int> rookIndices = rooks.GetIndicesOfPieces();
+
+        for (int i = 0; i < rookIndices.Count; i++)
+        {
+            ulong attackMask = GenerateRookAttackMask(rookIndices[i], rooks.IsWhitePiece()) & ~(1UL << rookIndices[i]);
+            rookAttackMask.SetBitboard(rookAttackMask.GetBitboard() | attackMask);
+        }
+
+        rookAttackMask.SetBitboard(rookAttackMask.GetBitboard() & ~rooks.GetBitboard());
+
+        return rookAttackMask.GetBitboard();
+    }
+
+    public ulong CalculateBishopAttacks(Bitboard bishops)
+    {
+        Bitboard bishopAttackMask = new Bitboard();
+        bishopAttackMask.SetBitboard(0);
+
+        List<int> bishopIndices = bishops.GetIndicesOfPieces();
+
+        for (int i = 0; i < bishopIndices.Count; i++)
+        {
+            bishopAttackMask.SetBitboard(bishopAttackMask.GetBitboard() | GenerateBishopAttackMask(bishopIndices[i], bishops.IsWhitePiece()));
+        }
+
+        return bishopAttackMask.GetBitboard();
+    }
+
+    public ulong CalculateQueenAttacks(Bitboard queens)
+    {
+        Bitboard queenAttackMask = new Bitboard();
+        queenAttackMask.SetBitboard(0);
+
+        List<int> queenIndices = queens.GetIndicesOfPieces();
+
+        for (int i = 0; i < queenIndices.Count; i++)
+        {
+            ulong rookMask = GenerateRookAttackMask(queenIndices[i], queens.IsWhitePiece());
+            ulong bishopMask = GenerateBishopAttackMask(queenIndices[i], queens.IsWhitePiece());
+            queenAttackMask.SetBitboard(queenAttackMask.GetBitboard() | rookMask | bishopMask);
+        }
+
+        queenAttackMask.SetBitboard(queenAttackMask.GetBitboard() & ~queens.GetBitboard());
+
+        return queenAttackMask.GetBitboard();
+    }
+
+    public ulong CalculateKingAttacks(Bitboard king)
+    {
+        var friendlyPieces = king.IsWhitePiece() ? whitePieces : blackPieces;
+        ulong kingBitboard = king.GetBitboard();
+        int kingIndex = FindFirstSetBit(kingBitboard); // Helper method to find index of first set bit (king)
+
+        Bitboard attacks = new Bitboard();
+        attacks.SetBitboard(kingAttackTable[kingIndex] & ~friendlyPieces.GetBitboard());
+
+        return attacks.GetBitboard();
+    }
+
+    public ulong CalculateKnightAttacks(Bitboard knights)
+    {
+        Bitboard knightAttackMask = new Bitboard();
+        knightAttackMask.SetBitboard(0);
+
+        var friendlyPieces = knights.IsWhitePiece() ? whitePieces : blackPieces;
+        List<int> knightIndices = knights.GetIndicesOfPieces();
+
+        for (int i = 0; i < knightIndices.Count; i++)
+        {
+            knightAttackMask.SetBitboard(knightAttackMask.GetBitboard() | GenerateKnightAttackMask(knightIndices[i]));
+        }
+
+        return knightAttackMask.GetBitboard() & ~friendlyPieces.GetBitboard();
+    }
+
+    // Helper method to find the first set bit
+    private int FindFirstSetBit(ulong bitboard)
+    {
+        int index = 0;
+        while (bitboard != 0)
+        {
+            if ((bitboard & 1UL) != 0)
+                return index;
+            bitboard >>= 1;
+            index++;
+        }
+        return -1;
+    }
+
+    // Placeholder methods for attack generation
+    public ulong GenerateRookAttackMask(int rookIndex, bool isWhiteRook)
+    {
+        Bitboard fileMask = new Bitboard();
+        fileMask.SetBitboard(0);
+
+        Bitboard rankMask = new Bitboard();
+        rankMask.SetBitboard(0);
+
+        ulong rookMask = 1UL << rookIndex;
+        ulong currentMask = 1UL << rookIndex;
+        ulong northMask, southMask, westMask, eastMask = 1UL << rookIndex;
+        ulong FILE_AH_MASK = FILE_A_MASK | FILE_H_MASK;
+
+        ulong friendlyPieces = isWhiteRook ? whitePieces.GetBitboard() : blackPieces.GetBitboard();
+        ulong enemyPieces = isWhiteRook ? blackPieces.GetBitboard() : whitePieces.GetBitboard();
+
+        int currentIndex = rookIndex;
+
+        while (true)
+        {
+            currentIndex += 8;
+            if (currentIndex > 63) break;
+
+            northMask = 1UL << currentIndex;
+            if ((northMask & friendlyPieces) != 0) break;
+
+            if ((northMask & enemyPieces) != 0)
+            {
+                fileMask.SetBitboard(fileMask.GetBitboard() | northMask);
+                break;
+            }
+            fileMask.SetBitboard(fileMask.GetBitboard() | northMask);
+        }
+
+        currentIndex = rookIndex;
+
+        while (true)
+        {
+            currentIndex -= 8;
+            if (currentIndex < 0) break;
+
+            southMask = 1UL << currentIndex;
+            if ((southMask & enemyPieces) != 0)
+            {
+                fileMask.SetBitboard(fileMask.GetBitboard() | southMask);
+                break;
+            }
+
+            if ((southMask & friendlyPieces) != 0) break;
+            fileMask.SetBitboard(fileMask.GetBitboard() | southMask);
+        }
+
+        currentIndex = rookIndex;
+
+        while (true)
+        {
+            currentIndex++;
+            if (currentIndex > 63) break;
+            eastMask = 1UL << currentIndex;
+
+            if ((eastMask & FILE_H_MASK) != 0)
+            {
+                rankMask.SetBitboard(rankMask.GetBitboard() | eastMask);
+                break;
+            }
+
+            if ((eastMask & friendlyPieces) != 0) break;
+
+            if ((eastMask & enemyPieces) != 0)
+            {
+                rankMask.SetBitboard(rankMask.GetBitboard() | eastMask);
+                break;
+            }
+            rankMask.SetBitboard(rankMask.GetBitboard() | eastMask);
+        }
+
+        currentIndex = rookIndex;
+
+        while (true)
+        {
+            currentIndex--;
+            if (currentIndex < 0) break;
+            westMask = 1UL << currentIndex;
+
+            if ((westMask & FILE_A_MASK) != 0)
+            {
+                rankMask.SetBitboard(rankMask.GetBitboard() | westMask);
+                break;
+            }
+
+            if ((westMask & friendlyPieces) != 0) break;
+
+            if ((westMask & enemyPieces) != 0)
+            {
+                rankMask.SetBitboard(rankMask.GetBitboard() | westMask);
+                break;
+            }
+            rankMask.SetBitboard(rankMask.GetBitboard() | westMask);
+        }
+
+        return fileMask.GetBitboard() | rankMask.GetBitboard();
+    }
+
+    public ulong GenerateTopHalfDiagonal(int index, int shift, bool isWhiteBishop)
+    {
+        ulong currentMask;
+        int currentIndex = index;
+        Bitboard result = new Bitboard();
+        ulong friendlyPieces = isWhiteBishop ? whitePieces.GetBitboard() : blackPieces.GetBitboard();
+        ulong enemyPieces = isWhiteBishop ? blackPieces.GetBitboard() : whitePieces.GetBitboard();
+        result.SetBitboard(0);
+
+        ulong leftRightTopEdgeMask = FILE_A_MASK | FILE_H_MASK | RANK_8_MASK;
+
+        currentMask = 1UL << index;
+
+        while (true)
+        {
+            currentIndex += shift;
+            currentMask = 1UL << currentIndex;
+            if ((currentMask & friendlyPieces) != 0 || currentIndex > 63) break;
+
+            if ((currentMask & leftRightTopEdgeMask) != 0 || (currentMask & enemyPieces) != 0)
+            {
+                result.SetBitboard(result.GetBitboard() | currentMask);
+                break;
+            }
+
+            if (currentIndex < 0) break;
+
+            result.SetBitboard(result.GetBitboard() | currentMask);
+        }
+
+        return result.GetBitboard();
+    }
+    public ulong GenerateBottomHalfDiagonal(int index, int shift, bool isWhiteBishop)
+    {
+        ulong currentMask;
+        int currentIndex = index;
+        Bitboard result = new Bitboard();
+        ulong friendlyPieces = isWhiteBishop ? whitePieces.GetBitboard() : blackPieces.GetBitboard();
+        ulong enemyPieces = isWhiteBishop ? blackPieces.GetBitboard() : whitePieces.GetBitboard();
+        result.SetBitboard(0);
+
+        ulong leftRightBottomEdgeMask = FILE_A_MASK | FILE_H_MASK | RANK_1_MASK;
+
+        currentMask = 1UL << index;
+
+        while (true)
+        {
+            currentIndex -= shift;
+            currentMask = 1UL << currentIndex;
+            if ((currentMask & friendlyPieces) != 0 || currentIndex < 0) break;
+
+            if ((currentMask & leftRightBottomEdgeMask) != 0 || (currentMask & enemyPieces) != 0)
+            {
+                result.SetBitboard(result.GetBitboard() | currentMask);
+                break;
+            }
+
+            result.SetBitboard(result.GetBitboard() | currentMask);
+        }
+
+        return result.GetBitboard();
+    }
+
+    public ulong GenerateBishopAttackMask(int bishopIndex, bool isWhiteBishop)
+    {
+        Bitboard attacks = new Bitboard();
+
+        // Create mask for diagonals
+        attacks.SetBitboard(GenerateBottomHalfDiagonal(bishopIndex, 7, isWhiteBishop));
+        attacks.SetBitboard(attacks.GetBitboard() | GenerateBottomHalfDiagonal(bishopIndex, 9, isWhiteBishop));
+        attacks.SetBitboard(attacks.GetBitboard() | GenerateTopHalfDiagonal(bishopIndex, 9, isWhiteBishop));
+        attacks.SetBitboard(attacks.GetBitboard() | GenerateTopHalfDiagonal(bishopIndex, 7, isWhiteBishop));
+
+        return attacks.GetBitboard();
+    }
+
+    public ulong GenerateKnightAttackMask(int knightIndex)
+    {
+        Bitboard attacks = new Bitboard();
+        ulong knightMask = 1UL << knightIndex;
+        ulong FILE_AB_MASK = FILE_A_MASK | FILE_B_MASK;
+        ulong FILE_GH_MASK = FILE_G_MASK | FILE_H_MASK;
+
+        ulong attackNorthNorthWest = (knightMask & ~FILE_A_MASK) << 15;  // 2 up, 1 left
+        ulong attackNorthNorthEast = (knightMask & ~FILE_H_MASK) << 17;  // 2 up, 1 right
+        ulong attackSouthSouthhEast = (knightMask & ~FILE_H_MASK) >> 15; // 2 down, 1 right
+        ulong attackSouthSouthhWest = (knightMask & ~FILE_A_MASK) >> 17; // 2 down, 1 left
+
+        ulong attackWestWestNorth = (knightMask & ~FILE_AB_MASK) << 6;   // 2 left, 1 up
+        ulong attackWestWestSouth = (knightMask & ~FILE_AB_MASK) >> 10;  // 2 left, 1 down
+        ulong attackEastEastNorth = (knightMask & ~FILE_GH_MASK) << 10;  // 2 right, 1 up
+        ulong attackEastEastSouth = (knightMask & ~FILE_GH_MASK) >> 6;   // 2 right, 1 down
+
+        attacks.SetBitboard(attackNorthNorthWest | attackNorthNorthEast | attackSouthSouthhEast | attackSouthSouthhWest |
+                            attackWestWestNorth | attackWestWestSouth | attackEastEastNorth | attackEastEastSouth);
+
+        return attacks.GetBitboard();
+    }
+
 
 }
