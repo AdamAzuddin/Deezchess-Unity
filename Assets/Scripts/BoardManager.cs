@@ -73,10 +73,8 @@ public class BoardManager : MonoBehaviour
 
 
     public int numOfMovesWithoutCaptureOrCheck = 0;
-    public bool whiteCanShortCastle = true;
-    public bool whiteCanLongCastle = true;
-    public bool blackCanShortCastle = true;
-    public bool blackCanLongCastle = true;
+    public int enPassantSquareIndex;
+
     public enum BoardState
     {
         SelectingPiece,
@@ -108,7 +106,6 @@ public class BoardManager : MonoBehaviour
         PlacePieces();
         InitializeKingAttackMasks();
         gameManager = FindObjectOfType<GameManager>();
-        gameManager.isWhiteToMove = true;
         if (gameManager == null)
         {
             Debug.LogError("BoardManager not found in the scene!");
@@ -201,10 +198,6 @@ public class BoardManager : MonoBehaviour
 
         // Reset move count and castling rights
         numOfMovesWithoutCaptureOrCheck = 0;
-        whiteCanShortCastle = true;
-        whiteCanLongCastle = true;
-        blackCanShortCastle = true;
-        blackCanLongCastle = true;
     }
 
     public void initializeFilesAndRanks()
@@ -251,46 +244,96 @@ public class BoardManager : MonoBehaviour
         }
     }
 
+    int uciSquareToBitboardIndex(string square)
+    {
+        if (square.Length != 2)
+            return -1;
+
+        char file = square[0];
+        char rank = square[1];
+
+        int fileIndex = file - 'a';
+        int rankIndex = rank - '1';
+
+        return rankIndex * 8 + fileIndex;
+    }
+
 
     // Method to place pieces on the board by index
     void PlacePieces()
     {
-        for (int i = 8; i <= 15; i++)
+        string fen = "rnbqkbnr/ppp1p1pp/8/3pPp2/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 1";
+        string[] fenParts = fen.Split(' ');
+        string piecePlacement = fenParts[0];
+        gameManager.isWhiteToMove = fenParts[1] == "w";
+        string castlingRights = fenParts[2];
+        gameManager.whiteCanShortCastle = castlingRights.Contains("K");
+        gameManager.whiteCanLongCastle = castlingRights.Contains("Q");
+        gameManager.blackCanShortCastle = castlingRights.Contains("k");
+        gameManager.blackCanLongCastle = castlingRights.Contains("q");
+        string enPassantSquare = fenParts[3];
+        if (enPassantSquare != "-")
         {
-            PlacePiece(whitePawnPrefab, i, Piece.PieceColor.White, Piece.PieceType.Pawn);
+            enPassantSquareIndex = uciSquareToBitboardIndex(enPassantSquare);
         }
+        int squareIndex = 56; // Start from the bottom-left of the board (A1)
 
-        for (int i = 48; i <= 55; i++)
+        foreach (char c in piecePlacement)
         {
-            PlacePiece(blackPawnPrefab, i, Piece.PieceColor.Black, Piece.PieceType.Pawn);
+            if (c == '/')
+            {
+                squareIndex -= 16;
+            }
+            else if (char.IsDigit(c)) // Empty squares
+            {
+                squareIndex += int.Parse(c.ToString());
+            }
+            else // Piece
+            {
+                PlacePieceFromFen(c, squareIndex);
+                squareIndex++;
+            }
         }
-
-        PlacePiece(whiteRookPrefab, 0, Piece.PieceColor.White, Piece.PieceType.Rook);
-        PlacePiece(whiteRookPrefab, 7, Piece.PieceColor.White, Piece.PieceType.Rook);
-
-        PlacePiece(blackRookPrefab, 56, Piece.PieceColor.Black, Piece.PieceType.Rook);
-        PlacePiece(blackRookPrefab, 63, Piece.PieceColor.Black, Piece.PieceType.Rook);
-
-        PlacePiece(whiteKnightPrefab, 1, Piece.PieceColor.White, Piece.PieceType.Knight);
-        PlacePiece(whiteKnightPrefab, 6, Piece.PieceColor.White, Piece.PieceType.Knight);
-
-        PlacePiece(blackKnightPrefab, 57, Piece.PieceColor.Black, Piece.PieceType.Knight);
-        PlacePiece(blackKnightPrefab, 62, Piece.PieceColor.Black, Piece.PieceType.Knight);
-
-        PlacePiece(whiteBishopPrefab, 2, Piece.PieceColor.White, Piece.PieceType.Bishop);
-        PlacePiece(whiteBishopPrefab, 5, Piece.PieceColor.White, Piece.PieceType.Bishop);
-
-        PlacePiece(blackBishopPrefab, 58, Piece.PieceColor.Black, Piece.PieceType.Bishop);
-        PlacePiece(blackBishopPrefab, 61, Piece.PieceColor.Black, Piece.PieceType.Bishop);
-
-        PlacePiece(whiteQueenPrefab, 3, Piece.PieceColor.White, Piece.PieceType.Queen);
-
-        PlacePiece(blackQueenPrefab, 59, Piece.PieceColor.Black, Piece.PieceType.Queen);
-
-        PlacePiece(whiteKingPrefab, 4, Piece.PieceColor.White, Piece.PieceType.King);
-
-        PlacePiece(blackKingPrefab, 60, Piece.PieceColor.Black, Piece.PieceType.King);
     }
+
+    // Helper method to place a piece based on the FEN character and square index
+    void PlacePieceFromFen(char fenChar, int squareIndex)
+    {
+        Piece.PieceColor color = char.IsUpper(fenChar) ? Piece.PieceColor.White : Piece.PieceColor.Black;
+        Piece.PieceType type;
+
+        // Determine the piece type based on the FEN character
+        switch (char.ToLower(fenChar))
+        {
+            case 'p': type = Piece.PieceType.Pawn; break;
+            case 'r': type = Piece.PieceType.Rook; break;
+            case 'n': type = Piece.PieceType.Knight; break;
+            case 'b': type = Piece.PieceType.Bishop; break;
+            case 'q': type = Piece.PieceType.Queen; break;
+            case 'k': type = Piece.PieceType.King; break;
+            default: return; // Unknown piece type
+        }
+
+        GameObject prefab = GetPrefab(type, color);
+        PlacePiece(prefab, squareIndex, color, type);
+    }
+
+    // Method to retrieve the prefab for the specific piece type and color
+    GameObject GetPrefab(Piece.PieceType type, Piece.PieceColor color)
+    {
+        // Replace with actual references to your prefabs
+        switch (type)
+        {
+            case Piece.PieceType.Pawn: return color == Piece.PieceColor.White ? whitePawnPrefab : blackPawnPrefab;
+            case Piece.PieceType.Rook: return color == Piece.PieceColor.White ? whiteRookPrefab : blackRookPrefab;
+            case Piece.PieceType.Knight: return color == Piece.PieceColor.White ? whiteKnightPrefab : blackKnightPrefab;
+            case Piece.PieceType.Bishop: return color == Piece.PieceColor.White ? whiteBishopPrefab : blackBishopPrefab;
+            case Piece.PieceType.Queen: return color == Piece.PieceColor.White ? whiteQueenPrefab : blackQueenPrefab;
+            case Piece.PieceType.King: return color == Piece.PieceColor.White ? whiteKingPrefab : blackKingPrefab;
+            default: return null;
+        }
+    }
+
 
 
     // Method to place an individual piece on a specific square based on the single index
@@ -412,7 +455,6 @@ public class BoardManager : MonoBehaviour
     {
         blackControlledSquares.SetBitboard(0UL);
 
-        // Calculate control for each black piece type and update the controlled squares
         blackControlledSquares.SetBitboard(
             blackControlledSquares.GetBitboard() | CalculatePawnAttacks(blackPawns));
 

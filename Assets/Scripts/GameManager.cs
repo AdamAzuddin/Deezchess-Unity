@@ -5,6 +5,10 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     public bool isWhiteToMove = true;
+    public bool whiteCanShortCastle = true;
+    public bool whiteCanLongCastle = true;
+    public bool blackCanShortCastle = true;
+    public bool blackCanLongCastle = true;
     public GameObject[] allSquares;
 
     
