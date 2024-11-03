@@ -117,7 +117,7 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    int UciSquareToBitboardIndex(string square)
+    public int UciSquareToBitboardIndex(string square)
     {
         if (square.Length != 2)
             return -1;
@@ -130,6 +130,21 @@ public class BoardManager : MonoBehaviour
 
         return rankIndex * 8 + fileIndex;
     }
+
+    string BitboardIndexToUci(int index)
+    {
+        if (index < 0 || index > 63)
+            return null; // Return null if the index is out of bounds
+
+        int fileIndex = index % 8; // Get the file (column) by taking modulo 8
+        int rankIndex = index / 8; // Get the rank (row) by integer division by 8
+
+        char file = (char)('a' + fileIndex); // Convert file index to letter ('a' to 'h')
+        char rank = (char)('1' + rankIndex); // Convert rank index to digit ('1' to '8')
+
+        return $"{file}{rank}";
+    }
+
 
     void PlacePieces()
     {
@@ -410,12 +425,31 @@ public class BoardManager : MonoBehaviour
         Debug.Log("Current pieces on the board after moving a piece: [" + string.Join(", ", piecesList.Select(c => $"'{c}'")) + "]");
 
         // Convert the pieces list back to a FEN string
-        currentFen = ConvertPiecesListToFen(piecesList);
+
+
+        if (char.ToLower(movingPiece) == 'p' && Mathf.Abs(originalSquareIndex - targetSquareIndex) == 16)
+        {
+            // Update en passant square logic here
+            string enPassantSquare;
+            if (char.IsUpper(movingPiece))
+            {
+                enPassantSquare = BitboardIndexToUci(targetSquareIndex - 8);
+            }
+            else
+            {
+                enPassantSquare = BitboardIndexToUci(targetSquareIndex + 8);
+            }
+            currentFen = ConvertPiecesListToFen(piecesList, enPassantSquare);
+        }
+        else
+        {
+            currentFen = ConvertPiecesListToFen(piecesList, "-");
+        }
         Debug.Log(currentFen);
     }
 
 
-    private string ConvertPiecesListToFen(List<char> piecesList)
+    private string ConvertPiecesListToFen(List<char> piecesList, string enPassantSquareUci)
     {
         StringBuilder fenBuilder = new StringBuilder();
         int emptyCount = 0;
@@ -463,8 +497,7 @@ public class BoardManager : MonoBehaviour
             gameManager.isWhiteToMove = true;
             colorToMove = "w";
         }
-
-        return fenBuilder.ToString() + " " + colorToMove + " " + fenParts[2] + " " + fenParts[3];
+        return fenBuilder.ToString() + " " + colorToMove + " " + fenParts[2]+ " " + enPassantSquareUci + " " + fenParts[4] + " " + fenParts[5];
     }
 
     // Call this method when a piece is moved

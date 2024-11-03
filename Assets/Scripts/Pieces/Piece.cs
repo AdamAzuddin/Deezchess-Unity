@@ -211,6 +211,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             {
                 sq.spriteRenderer.color = sq.color;
             }
+            boardManager.highlightedSquares.Clear();
         }
     }
     public void OnPointerClick(PointerEventData eventData)
