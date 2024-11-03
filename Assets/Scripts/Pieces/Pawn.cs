@@ -49,7 +49,9 @@ public class Pawn : Piece
             Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
             enPassantCapturedSquare.occupiedPiece = null;
         }
-
+        string[] fenParts = boardManager.currentFen.Split(' ');
+        boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " 0 " + fenParts[5];
+        Debug.Log("Fen string after resetted half move: "+boardManager.currentFen);
     }
 
     public override void OnBeginDrag(PointerEventData eventData)

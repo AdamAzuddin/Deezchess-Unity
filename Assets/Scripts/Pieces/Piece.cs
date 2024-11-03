@@ -118,6 +118,10 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     }
     public virtual void OnEndDrag(PointerEventData eventData)
     {
+        string[] fenParts = boardManager.currentFen.Split(' ');
+        
+        int halfMoveCount = int.Parse(fenParts[4]);
+        int fullMoveCount = int.Parse(fenParts[5]);
         if (canDrag)
         {
             canvasGroup.alpha = 1f;
@@ -148,9 +152,13 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         dropOnSquare.OnDrop(eventData);
                         targetSquare = dropOnSquare;
                         boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
+                        if (pieceColor == PieceColor.Black)
+                        {
+                            fullMoveCount++;
+                        }
+                        halfMoveCount++;
                         break;
                     }
-
 
                     else
                     {
@@ -186,6 +194,11 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                     square.OnDrop(eventData);
                                     targetSquare = square;
                                     boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
+                                    if (pieceColor == PieceColor.Black)
+                                    {
+                                        fullMoveCount++;
+                                    }
+                                    halfMoveCount=0;
                                     break;
                                 }
                                 else
@@ -212,6 +225,11 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 sq.spriteRenderer.color = sq.color;
             }
             boardManager.highlightedSquares.Clear();
+            fenParts = boardManager.currentFen.Split(' ');
+            boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+            if(pieceType!=PieceType.Pawn){
+                Debug.Log("Fen string after  updated full and half move: "+boardManager.currentFen);
+            }
         }
     }
     public void OnPointerClick(PointerEventData eventData)
