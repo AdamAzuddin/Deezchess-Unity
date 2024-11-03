@@ -398,7 +398,7 @@ public class BoardManager : MonoBehaviour
         return pieceListIndex;
     }
 
-    public void UpdateFenAfterMove(int originalSquareIndex, int targetSquareIndex)
+    public void UpdateFenAfterMove(int originalSquareIndex, int targetSquareIndex, bool isCastlingMove)
     {
         List<char> piecesList = GetCurrentPiecesFromFen();
 
@@ -412,7 +412,7 @@ public class BoardManager : MonoBehaviour
         // Check if the moving piece is valid (not empty)
         if (movingPiece == ' ')
         {
-            Debug.LogError("No piece found at the original index.");
+            Debug.LogError("No piece found at the index: "+ originalSquareIndex);
             return; // Exit if no piece is found
         }
 
@@ -439,17 +439,17 @@ public class BoardManager : MonoBehaviour
             {
                 enPassantSquare = BitboardIndexToUci(targetSquareIndex + 8);
             }
-            currentFen = ConvertPiecesListToFen(piecesList, enPassantSquare);
+            currentFen = ConvertPiecesListToFen(piecesList, enPassantSquare, isCastlingMove);
         }
         else
         {
-            currentFen = ConvertPiecesListToFen(piecesList, "-");
+            currentFen = ConvertPiecesListToFen(piecesList, "-", isCastlingMove);
         }
         Debug.Log(currentFen);
     }
 
 
-    private string ConvertPiecesListToFen(List<char> piecesList, string enPassantSquareUci)
+    private string ConvertPiecesListToFen(List<char> piecesList, string enPassantSquareUci, bool isCastlingMove)
     {
         StringBuilder fenBuilder = new StringBuilder();
         int emptyCount = 0;
@@ -487,23 +487,25 @@ public class BoardManager : MonoBehaviour
         // Return the generated piece placement FEN string, keeping the turn, castling rights, and en passant
         string[] fenParts = currentFen.Split(' ');
         string colorToMove = fenParts[1];
-        if (colorToMove == "w")
+        if (!isCastlingMove)
         {
-            gameManager.isWhiteToMove = false;
-            colorToMove = "b";
+            if (colorToMove == "w")
+            {
+                gameManager.isWhiteToMove = false;
+                colorToMove = "b";
+            }
+            else
+            {
+                gameManager.isWhiteToMove = true;
+                colorToMove = "w";
+            }
         }
-        else
-        {
-            gameManager.isWhiteToMove = true;
-            colorToMove = "w";
-        }
-        return fenBuilder.ToString() + " " + colorToMove + " " + fenParts[2]+ " " + enPassantSquareUci + " " + fenParts[4] + " " + fenParts[5];
+        return fenBuilder.ToString() + " " + colorToMove + " " + fenParts[2] + " " + enPassantSquareUci + " " + fenParts[4] + " " + fenParts[5];
     }
 
     // Call this method when a piece is moved
-    public void MovePiece(int originalIndex, int targetIndex)
+    public void MovePiece(int originalIndex, int targetIndex, bool isCastlingMove)
     {
-        UpdateFenAfterMove(originalIndex, targetIndex);
-        // Additional logic for moving the piece on the board, highlighting squares, etc.
+        UpdateFenAfterMove(originalIndex, targetIndex, isCastlingMove);
     }
 }

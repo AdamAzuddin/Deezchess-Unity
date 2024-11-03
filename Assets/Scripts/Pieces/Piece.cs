@@ -147,7 +147,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
                         dropOnSquare.OnDrop(eventData);
                         targetSquare = dropOnSquare;
-                        boardManager.MovePiece(originalSquare.index, targetSquare.index);
+                        boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
                         break;
                     }
 
@@ -185,7 +185,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                     }
                                     square.OnDrop(eventData);
                                     targetSquare = square;
-                                    boardManager.MovePiece(originalSquare.index, targetSquare.index);
+                                    boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
                                     break;
                                 }
                                 else
