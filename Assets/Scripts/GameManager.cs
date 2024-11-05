@@ -1,6 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,38 +10,77 @@ public class GameManager : MonoBehaviour
     public bool whiteCanLongCastle = true;
     public bool blackCanShortCastle = true;
     public bool blackCanLongCastle = true;
-    public GameObject[] allSquares;
+    public GameObject gameOverPopup;
+    public GameObject resultTextGameObject;
+    private Text resultText;
 
-    
     // Start is called before the first frame update
+    private Dictionary<int, Square> squareDictionary;
+
     void Start()
     {
-        allSquares  = GameObject.FindGameObjectsWithTag("Square");
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    public Square FindSquareByIndex(int targetIndex)
-    {
-
-        // Iterate through all squares to find the one with the matching index
-        foreach (GameObject squareObject in allSquares)
+        // Assuming you have a way to access all squares
+        GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
+        squareDictionary = new Dictionary<int, Square>();
+        if (resultTextGameObject != null)
         {
-            Square squareComponent = squareObject.GetComponent<Square>();
-
-            // Check if the squareComponent is valid and has the desired index
-            if (squareComponent != null && squareComponent.index == targetIndex) 
-            {
-                return squareComponent;
-            }
+            resultText = resultTextGameObject.GetComponent<Text>();
         }
 
-        // Return null if no square with the specified index was found
+        foreach (GameObject squareObject in allSquareObjects)
+        {
+            Square square = squareObject.GetComponent<Square>();
+            if (square != null)
+            {
+                squareDictionary[square.index] = square; // Use square index as the key
+            }
+        }
+    }
+
+    void Update()
+    {
+
+    }
+
+    public Square GetSquareByIndex(int targetIndex)
+    {
+        if (squareDictionary.TryGetValue(targetIndex, out Square square))
+        {
+            return square;
+        }
+
         Debug.LogError("Square with index " + targetIndex + " not found!");
         return null;
     }
+
+    public void ShowGameOver(string text)
+    {
+        Piece[] pieces = FindObjectsOfType<Piece>();
+        foreach (Piece piece in pieces)
+        {
+            Destroy(piece.gameObject);
+        }
+        Square[] squares = FindObjectsOfType<Square>();
+        foreach (Square square in squares)
+        {
+            Destroy(square.gameObject);
+        }
+        if (resultText != null)
+        {
+            resultText.text = text;
+        }
+        gameOverPopup.SetActive(true);
+    }
+
+    public void HideGameOver()
+    {
+        gameOverPopup.SetActive(false);
+    }
+
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        HideGameOver();
+    }
+
 }
