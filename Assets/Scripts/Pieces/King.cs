@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Data.Common;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -23,7 +20,6 @@ public class King : Piece
     public override void OnEndDrag(PointerEventData eventData)
     {
         base.OnEndDrag(eventData);
-        // check for castling move by checking the difference between target square and original square is >1
         if (canDrag)
         {
             string[] fenParts = boardManager.currentFen.Split(' ');

@@ -1,11 +1,9 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Runtime.InteropServices;
 using System;
 using System.Text;
 using System.Linq;
-using System.Collections.Generic;
 
 public class BoardManager : MonoBehaviour
 {
@@ -534,10 +532,8 @@ public class BoardManager : MonoBehaviour
 
     public void AddFen(Dictionary<string, int> fenOccurrences, string fen)
     {
-        // Check if the FEN string already exists in the dictionary
         if (fenOccurrences.ContainsKey(fen))
         {
-            // Increment the occurrence count
             fenOccurrences[fen]++;
 
             // Check for threefold repetition

@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine.EventSystems;
 
 public class Knight : Piece
