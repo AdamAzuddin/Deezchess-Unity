@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System;
 using System.Text;
 using System.Linq;
+using System.Collections.Generic;
 
 public class BoardManager : MonoBehaviour
 {
@@ -39,6 +40,9 @@ public class BoardManager : MonoBehaviour
     public int enPassantSquareIndex;
     public string currentFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+    public Dictionary<string, int> fenOccurences = new Dictionary<string, int>(50);
+
+    
     [StructLayout(LayoutKind.Sequential)]
     public struct MoveIndices
     {
@@ -46,7 +50,7 @@ public class BoardManager : MonoBehaviour
         public int to;
     }
 
-    [DllImport("ChessLogicMeson", CallingConvention = CallingConvention.Cdecl)]
+    [DllImport("ChessLogic", CallingConvention = CallingConvention.Cdecl)]
     private static extern IntPtr getLegalMoves(string fen, out int moveCount);
 
     public enum BoardState
@@ -354,6 +358,24 @@ public class BoardManager : MonoBehaviour
         return legalMovesTo;
     }
 
+    public int GetNumberOfLegalMoves(string fen)
+    {
+        int moveCount = 0;
+
+#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
+        // Call the getLegalMoves function from the DLL
+        IntPtr movesPtr = getLegalMoves(fen, out moveCount);
+
+        // Optional: Log the moves for debugging
+        Debug.Log("Total legal moves for FEN: " + fen + " is: " + moveCount);
+#else
+    Debug.Log("DLL not supported on this platform.");
+#endif
+
+        return moveCount; // Return the total number of legal moves
+    }
+
+
     public List<char> GetCurrentPiecesFromFen()
     {
         string[] fenParts = currentFen.Split(' ');
@@ -387,6 +409,7 @@ public class BoardManager : MonoBehaviour
 
         return piecesList; // Return the list of pieces
     }
+
     public int SquareIndexToPieceListIndex(int squareIndex)
     {
         int row = squareIndex / 8; // Get the row number in 0-based indexing from A1 upwards
@@ -412,7 +435,7 @@ public class BoardManager : MonoBehaviour
         // Check if the moving piece is valid (not empty)
         if (movingPiece == ' ')
         {
-            Debug.LogError("No piece found at the index: "+ originalSquareIndex);
+            Debug.LogError("No piece found at the index: " + originalSquareIndex);
             return; // Exit if no piece is found
         }
 
@@ -508,4 +531,37 @@ public class BoardManager : MonoBehaviour
     {
         UpdateFenAfterMove(originalIndex, targetIndex, isCastlingMove);
     }
+
+    public void AddFen(Dictionary<string, int> fenOccurrences, string fen)
+    {
+        // Check if the FEN string already exists in the dictionary
+        if (fenOccurrences.ContainsKey(fen))
+        {
+            // Increment the occurrence count
+            fenOccurrences[fen]++;
+
+            // Check for threefold repetition
+            if (fenOccurrences[fen] == 3)
+            {
+                gameManager.ShowGameOver("Draw by threefold repetition");
+            }
+
+            if (fenOccurrences.Count >= 50)
+            {
+                fenOccurrences.Clear();
+                fenOccurrences[fen] = 1;
+            }
+        }
+        else
+        {
+            fenOccurrences[fen] = 1;
+
+            if (fenOccurrences.Count >= 50)
+            {
+                fenOccurrences.Clear();
+                fenOccurrences[fen] = 1;
+            }
+        }
+    }
+
 }

@@ -119,7 +119,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     public virtual void OnEndDrag(PointerEventData eventData)
     {
         string[] fenParts = boardManager.currentFen.Split(' ');
-        
+
         int halfMoveCount = int.Parse(fenParts[4]);
         int fullMoveCount = int.Parse(fenParts[5]);
         if (canDrag)
@@ -230,6 +230,19 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             if(pieceType!=PieceType.Pawn){
                 Debug.Log("Fen string after  updated full and half move: "+boardManager.currentFen);
             }
+            boardManager.AddFen(boardManager.fenOccurences, fenParts[0]+fenParts[2]);
+            if(halfMoveCount==50){
+                boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
+            }
+            if(boardManager.GetNumberOfLegalMoves(boardManager.currentFen)==0){
+                if(fenParts[1]=="w"){
+                    boardManager.gameManager.ShowGameOver("Black win");
+                }
+                else if(fenParts[1]=="b"){
+                    boardManager.gameManager.ShowGameOver("White win");
+                }
+            }
+
         }
     }
     public void OnPointerClick(PointerEventData eventData)

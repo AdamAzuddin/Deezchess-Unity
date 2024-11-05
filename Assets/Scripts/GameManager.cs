@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,7 +11,10 @@ public class GameManager : MonoBehaviour
     public bool whiteCanLongCastle = true;
     public bool blackCanShortCastle = true;
     public bool blackCanLongCastle = true;
-    
+    public GameObject gameOverPopup;
+    public GameObject resultTextGameObject;
+    private Text resultText;
+
     // Start is called before the first frame update
     private Dictionary<int, Square> squareDictionary;
 
@@ -18,6 +23,10 @@ public class GameManager : MonoBehaviour
         // Assuming you have a way to access all squares
         GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
         squareDictionary = new Dictionary<int, Square>();
+        if (resultTextGameObject != null)
+        {
+            resultText = resultTextGameObject.GetComponent<Text>();
+        }
 
         foreach (GameObject squareObject in allSquareObjects)
         {
@@ -31,7 +40,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        
+
     }
 
     public Square GetSquareByIndex(int targetIndex)
@@ -44,4 +53,35 @@ public class GameManager : MonoBehaviour
         Debug.LogError("Square with index " + targetIndex + " not found!");
         return null;
     }
+
+    public void ShowGameOver(string text)
+    {
+        Piece[] pieces = FindObjectsOfType<Piece>();
+        foreach (Piece piece in pieces)
+        {
+            Destroy(piece.gameObject);
+        }
+        Square[] squares = FindObjectsOfType<Square>();
+        foreach (Square square in squares)
+        {
+            Destroy(square.gameObject);
+        }
+        if (resultText != null)
+        {
+            resultText.text = text;
+        }
+        gameOverPopup.SetActive(true);
+    }
+
+    public void HideGameOver()
+    {
+        gameOverPopup.SetActive(false);
+    }
+
+    public void RestartGame()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        HideGameOver();
+    }
+
 }
