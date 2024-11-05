@@ -1,7 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -25,8 +22,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     protected Square originalSquare;
     protected Square targetSquare;
     protected bool canDrag;
-    protected Pawn[] allPawns;
-
 
     public virtual void Start()
     {
@@ -47,9 +42,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             Debug.Log("No GameObject found with the 'BoardManager' tag!");
         }
         mainCamera = Camera.main;
-
-
-        allPawns = FindObjectsOfType<Pawn>();
     }
 
     private void Awake()
@@ -77,6 +69,17 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 if (square != null && square.occupiedPiece == this && (square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
                 {
                     originalSquare = square;
+                    List<int> possibleLegalMoveIndices = boardManager.GetLegalMovesFromIndex(square.index);
+
+                    foreach (int index in possibleLegalMoveIndices)
+                    {
+                        Square squareToHighlight = FindSquareByIndex(index);
+                        if (squareToHighlight != null)
+                        {
+                            boardManager.HighlightSquare(squareToHighlight);
+                        }
+                    }
+
                     canDrag = true;
                 }
                 else
@@ -109,6 +112,10 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     }
     public virtual void OnEndDrag(PointerEventData eventData)
     {
+        string[] fenParts = boardManager.currentFen.Split(' ');
+
+        int halfMoveCount = int.Parse(fenParts[4]);
+        int fullMoveCount = int.Parse(fenParts[5]);
         if (canDrag)
         {
             canvasGroup.alpha = 1f;
@@ -138,9 +145,14 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
                         dropOnSquare.OnDrop(eventData);
                         targetSquare = dropOnSquare;
+                        boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
+                        if (pieceColor == PieceColor.Black)
+                        {
+                            fullMoveCount++;
+                        }
+                        halfMoveCount++;
                         break;
                     }
-
 
                     else
                     {
@@ -154,8 +166,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     Piece otherPiece = result.gameObject.GetComponent<Piece>();
                     if (otherPiece != null && ((boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.White) || (!boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.Black)))
                     {
-                        Bitboard piecesToBeTakenBitboard = new Bitboard();
-
                         Destroy(otherPiece.gameObject);
                         Debug.Log("Other piece deleted");
 
@@ -169,30 +179,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                 Square square = squareResult.gameObject.GetComponent<Square>();
                                 if (square != null && square.color != square.spriteRenderer.color)
                                 {
-
-                                    switch (otherPiece.pieceType)
-                                    {
-                                        case PieceType.Pawn:
-                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackPawns : boardManager.whitePawns;
-                                            break;
-                                        case PieceType.Rook:
-                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackRooks : boardManager.whiteRooks;
-                                            break;
-                                        case PieceType.Knight:
-                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackKnights : boardManager.whiteKnights;
-                                            break;
-                                        case PieceType.Bishop:
-                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackBishops : boardManager.whiteBishops;
-                                            break;
-                                        case PieceType.Queen:
-                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackQueens : boardManager.whiteQueens;
-                                            break;
-                                        case PieceType.King:
-                                            piecesToBeTakenBitboard = boardManager.gameManager.isWhiteToMove ? boardManager.blackKing : boardManager.whiteKing;
-                                            break;
-                                    }
-                                    piecesToBeTakenBitboard.RemoveAtIndex(square.index);
-                                    boardManager.UpdatePiecesBitboards();
                                     transform.position = square.transform.position;
                                     square.occupiedPiece = this;
                                     if (originalSquare != null)
@@ -201,6 +187,12 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                     }
                                     square.OnDrop(eventData);
                                     targetSquare = square;
+                                    boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
+                                    if (pieceColor == PieceColor.Black)
+                                    {
+                                        fullMoveCount++;
+                                    }
+                                    halfMoveCount=0;
                                     break;
                                 }
                                 else
@@ -226,29 +218,34 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             {
                 sq.spriteRenderer.color = sq.color;
             }
-            
-            PieceColor myPieceColor = boardManager.gameManager.isWhiteToMove ? PieceColor.White : PieceColor.Black;
-            
-            // find all pawns of my color and make sure it cant en passant anymore
-            Pawn[] myPawns = allPawns.Where(pawn => pawn.pieceColor == myPieceColor).ToArray();
-
-            foreach (Pawn pawn in myPawns)
-            {
-                if (pawn.isEnPassantable)
-                {
-                    pawn.isEnPassantable = false;
+            boardManager.highlightedSquares.Clear();
+            fenParts = boardManager.currentFen.Split(' ');
+            boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+            if(pieceType!=PieceType.Pawn){
+                Debug.Log("Fen string after  updated full and half move: "+boardManager.currentFen);
+            }
+            boardManager.AddFen(boardManager.fenOccurences, fenParts[0]+fenParts[2]);
+            if(halfMoveCount==50){
+                boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
+            }
+            if(boardManager.GetNumberOfLegalMoves(boardManager.currentFen)==0){
+                if(fenParts[1]=="w"){
+                    boardManager.gameManager.ShowGameOver("Black win");
+                }
+                else if(fenParts[1]=="b"){
+                    boardManager.gameManager.ShowGameOver("White win");
                 }
             }
 
-
-            
         }
     }
-
-
     public void OnPointerClick(PointerEventData eventData)
     {
         Debug.Log("Piece clicked");
     }
 
+    public Square FindSquareByIndex(int targetIndex)
+    {
+        return boardManager.gameManager.GetSquareByIndex(targetIndex);
+    }
 }

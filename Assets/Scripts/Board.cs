@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Security.Cryptography;
 using UnityEngine;
 
 public class Board : MonoBehaviour
@@ -8,15 +5,12 @@ public class Board : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     public GameObject square;
     public Color lightColor;
-    public Color darkColor;// new Color(0.627f, 0.925f, 1.0f)
-
-    // Start is called before the first frame update
+    public Color darkColor;
     void Start()
     {
         //initializeGame();
     }
 
-    // Update is called once per frame
     void Update()
     {
 
