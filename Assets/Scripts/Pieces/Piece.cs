@@ -9,7 +9,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
     public PieceType pieceType;
     public PieceColor pieceColor;
-
+    public bool isDraggable;
     protected SpriteRenderer spriteRenderer;
     protected Vector3 offset;
     public Vector2Int currentPos;
@@ -51,192 +51,212 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
     public virtual void OnPointerDown(PointerEventData eventData)
     {
-        Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(eventData.position);
-        mouseWorldPos.z = 0;
-        offset = transform.position - mouseWorldPos;
-
-        PointerEventData pointerData = new PointerEventData(EventSystem.current);
-        pointerData.position = Input.mousePosition;
-
-        List<RaycastResult> raycastResults = new List<RaycastResult>();
-        EventSystem.current.RaycastAll(pointerData, raycastResults);
-
-        foreach (RaycastResult result in raycastResults)
+        if (isDraggable)
         {
-            if (result.gameObject.CompareTag("Square"))
-            {
-                Square square = result.gameObject.GetComponent<Square>();
-                if (square != null && square.occupiedPiece == this && (square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
-                {
-                    originalSquare = square;
-                    List<int> possibleLegalMoveIndices = boardManager.GetLegalMovesFromIndex(square.index);
 
-                    foreach (int index in possibleLegalMoveIndices)
-                    {
-                        Square squareToHighlight = FindSquareByIndex(index);
-                        if (squareToHighlight != null)
-                        {
-                            boardManager.HighlightSquare(squareToHighlight);
-                        }
-                    }
-
-                    canDrag = true;
-                }
-                else
-                {
-                    canDrag = false;
-                }
-                break;
-            }
-        }
-    }
-    public virtual void OnBeginDrag(PointerEventData eventData)
-    {
-        if (canDrag)
-        {
-            canvasGroup.blocksRaycasts = false;
-        }
-        else
-        {
-            Debug.Log("It's not your time");
-        }
-    }
-    public virtual void OnDrag(PointerEventData eventData)
-    {
-        if (canDrag)
-        {
             Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(eventData.position);
             mouseWorldPos.z = 0;
-            transform.position = mouseWorldPos + offset;
-        }
-    }
-    public virtual void OnEndDrag(PointerEventData eventData)
-    {
-        string[] fenParts = boardManager.currentFen.Split(' ');
+            offset = transform.position - mouseWorldPos;
 
-        int halfMoveCount = int.Parse(fenParts[4]);
-        int fullMoveCount = int.Parse(fenParts[5]);
-        if (canDrag)
-        {
-            canvasGroup.alpha = 1f;
-            canvasGroup.blocksRaycasts = true;
             PointerEventData pointerData = new PointerEventData(EventSystem.current);
             pointerData.position = Input.mousePosition;
 
             List<RaycastResult> raycastResults = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointerData, raycastResults);
 
-            Square dropOnSquare = null;
-
             foreach (RaycastResult result in raycastResults)
             {
                 if (result.gameObject.CompareTag("Square"))
                 {
-                    dropOnSquare = result.gameObject.GetComponent<Square>();
-                    if (dropOnSquare != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
+                    Square square = result.gameObject.GetComponent<Square>();
+                    if (square != null && square.occupiedPiece == this && (square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
                     {
-                        transform.position = dropOnSquare.transform.position;
+                        originalSquare = square;
+                        List<int> possibleLegalMoveIndices = boardManager.GetLegalMovesFromIndex(square.index);
 
-                        dropOnSquare.occupiedPiece = this;
-                        if (originalSquare != null)
+                        foreach (int index in possibleLegalMoveIndices)
                         {
-                            originalSquare.occupiedPiece = null;
+                            Square squareToHighlight = FindSquareByIndex(index);
+                            if (squareToHighlight != null)
+                            {
+                                boardManager.HighlightSquare(squareToHighlight);
+                            }
                         }
 
-                        dropOnSquare.OnDrop(eventData);
-                        targetSquare = dropOnSquare;
-                        boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
-                        if (pieceColor == PieceColor.Black)
-                        {
-                            fullMoveCount++;
-                        }
-                        halfMoveCount++;
-                        break;
+                        canDrag = true;
                     }
-
                     else
                     {
-                        transform.position = originalSquare.transform.position;
-                        targetSquare = null;
-                        break;
+                        canDrag = false;
                     }
+                    break;
                 }
-                else if (result.gameObject.CompareTag("Piece") && result.gameObject != gameObject)
+            }
+        }
+    }
+    public virtual void OnBeginDrag(PointerEventData eventData)
+    {
+        if (isDraggable)
+        {
+
+            if (canDrag)
+            {
+                canvasGroup.blocksRaycasts = false;
+            }
+            else
+            {
+                Debug.Log("It's not your time");
+            }
+        }
+    }
+    public virtual void OnDrag(PointerEventData eventData)
+    {
+        if (isDraggable)
+        {
+            if (canDrag)
+            {
+                Vector3 mouseWorldPos = mainCamera.ScreenToWorldPoint(eventData.position);
+                mouseWorldPos.z = 0;
+                transform.position = mouseWorldPos + offset;
+            }
+        }
+    }
+    public virtual void OnEndDrag(PointerEventData eventData)
+    {
+        if (isDraggable)
+        {
+
+            string[] fenParts = boardManager.currentFen.Split(' ');
+
+            int halfMoveCount = int.Parse(fenParts[4]);
+            int fullMoveCount = int.Parse(fenParts[5]);
+            if (canDrag)
+            {
+                canvasGroup.alpha = 1f;
+                canvasGroup.blocksRaycasts = true;
+                PointerEventData pointerData = new PointerEventData(EventSystem.current);
+                pointerData.position = Input.mousePosition;
+
+                List<RaycastResult> raycastResults = new List<RaycastResult>();
+                EventSystem.current.RaycastAll(pointerData, raycastResults);
+
+                Square dropOnSquare = null;
+
+                foreach (RaycastResult result in raycastResults)
                 {
-                    Piece otherPiece = result.gameObject.GetComponent<Piece>();
-                    if (otherPiece != null && ((boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.White) || (!boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.Black)))
+                    if (result.gameObject.CompareTag("Square"))
                     {
-                        Destroy(otherPiece.gameObject);
-                        Debug.Log("Other piece deleted");
-
-                        List<RaycastResult> raycastSquare = new List<RaycastResult>();
-                        EventSystem.current.RaycastAll(pointerData, raycastSquare);
-
-                        foreach (RaycastResult squareResult in raycastSquare)
+                        dropOnSquare = result.gameObject.GetComponent<Square>();
+                        if (dropOnSquare != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
                         {
-                            if (squareResult.gameObject.CompareTag("Square"))
+                            transform.position = dropOnSquare.transform.position;
+
+                            dropOnSquare.occupiedPiece = this;
+                            if (originalSquare != null)
                             {
-                                Square square = squareResult.gameObject.GetComponent<Square>();
-                                if (square != null && square.color != square.spriteRenderer.color)
+                                originalSquare.occupiedPiece = null;
+                            }
+
+                            dropOnSquare.OnDrop(eventData);
+                            targetSquare = dropOnSquare;
+                            boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
+                            if (pieceColor == PieceColor.Black)
+                            {
+                                fullMoveCount++;
+                            }
+                            halfMoveCount++;
+                            break;
+                        }
+
+                        else
+                        {
+                            transform.position = originalSquare.transform.position;
+                            targetSquare = null;
+                            break;
+                        }
+                    }
+                    else if (result.gameObject.CompareTag("Piece") && result.gameObject != gameObject)
+                    {
+                        Piece otherPiece = result.gameObject.GetComponent<Piece>();
+                        if (otherPiece != null && ((boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.White) || (!boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.Black)))
+                        {
+                            Destroy(otherPiece.gameObject);
+                            Debug.Log("Other piece deleted");
+
+                            List<RaycastResult> raycastSquare = new List<RaycastResult>();
+                            EventSystem.current.RaycastAll(pointerData, raycastSquare);
+
+                            foreach (RaycastResult squareResult in raycastSquare)
+                            {
+                                if (squareResult.gameObject.CompareTag("Square"))
                                 {
-                                    transform.position = square.transform.position;
-                                    square.occupiedPiece = this;
-                                    if (originalSquare != null)
+                                    Square square = squareResult.gameObject.GetComponent<Square>();
+                                    if (square != null && square.color != square.spriteRenderer.color)
                                     {
-                                        originalSquare.occupiedPiece = null;
+                                        transform.position = square.transform.position;
+                                        square.occupiedPiece = this;
+                                        if (originalSquare != null)
+                                        {
+                                            originalSquare.occupiedPiece = null;
+                                        }
+                                        square.OnDrop(eventData);
+                                        targetSquare = square;
+                                        boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
+                                        if (pieceColor == PieceColor.Black)
+                                        {
+                                            fullMoveCount++;
+                                        }
+                                        halfMoveCount = 0;
+                                        break;
                                     }
-                                    square.OnDrop(eventData);
-                                    targetSquare = square;
-                                    boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
-                                    if (pieceColor == PieceColor.Black)
+                                    else
                                     {
-                                        fullMoveCount++;
+                                        transform.position = originalSquare.transform.position;
+                                        targetSquare = null;
+                                        break;
                                     }
-                                    halfMoveCount=0;
-                                    break;
-                                }
-                                else
-                                {
-                                    transform.position = originalSquare.transform.position;
-                                    targetSquare = null;
-                                    break;
                                 }
                             }
                         }
+                        else
+                        {
+                            transform.position = originalSquare.transform.position;
+                            targetSquare = null;
+                            break;
+                        }
+
                     }
-                    else
+
+                }
+                foreach (Square sq in boardManager.highlightedSquares)
+                {
+                    sq.spriteRenderer.color = sq.color;
+                }
+                boardManager.highlightedSquares.Clear();
+                fenParts = boardManager.currentFen.Split(' ');
+                boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+                if (pieceType != PieceType.Pawn)
+                {
+                    Debug.Log("Fen string after  updated full and half move: " + boardManager.currentFen);
+                }
+                boardManager.AddFen(boardManager.fenOccurences, fenParts[0] + fenParts[2]);
+                if (halfMoveCount == 50)
+                {
+                    boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
+                }
+                if (boardManager.GetNumberOfLegalMoves(boardManager.currentFen) == 0)
+                {
+                    if (fenParts[1] == "w")
                     {
-                        transform.position = originalSquare.transform.position;
-                        targetSquare = null;
-                        break;
+                        boardManager.gameManager.ShowGameOver("Black win");
                     }
-
+                    else if (fenParts[1] == "b")
+                    {
+                        boardManager.gameManager.ShowGameOver("White win");
+                    }
                 }
 
             }
-            foreach (Square sq in boardManager.highlightedSquares)
-            {
-                sq.spriteRenderer.color = sq.color;
-            }
-            boardManager.highlightedSquares.Clear();
-            fenParts = boardManager.currentFen.Split(' ');
-            boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
-            if(pieceType!=PieceType.Pawn){
-                Debug.Log("Fen string after  updated full and half move: "+boardManager.currentFen);
-            }
-            boardManager.AddFen(boardManager.fenOccurences, fenParts[0]+fenParts[2]);
-            if(halfMoveCount==50){
-                boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
-            }
-            if(boardManager.GetNumberOfLegalMoves(boardManager.currentFen)==0){
-                if(fenParts[1]=="w"){
-                    boardManager.gameManager.ShowGameOver("Black win");
-                }
-                else if(fenParts[1]=="b"){
-                    boardManager.gameManager.ShowGameOver("White win");
-                }
-            }
-
         }
     }
     public void OnPointerClick(PointerEventData eventData)

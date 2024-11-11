@@ -19,7 +19,6 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        // Assuming you have a way to access all squares
         GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
         squareDictionary = new Dictionary<int, Square>();
         if (resultTextGameObject != null)

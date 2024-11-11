@@ -77,7 +77,6 @@ public class BoardManager : MonoBehaviour
     void Start()
     {
         InitializeBoard();
-        PlacePieces();
         gameManager = FindObjectOfType<GameManager>();
         if (gameManager == null)
         {
@@ -148,7 +147,7 @@ public class BoardManager : MonoBehaviour
     }
 
 
-    void PlacePieces()
+    public void PlacePieces(bool whitePiecesIsDraggable = true, bool blackPiecesIsDraggable = true)
     {
         string[] fenParts = currentFen.Split(' ');
         string piecePlacement = fenParts[0];
@@ -177,12 +176,12 @@ public class BoardManager : MonoBehaviour
             }
             else // Piece
             {
-                PlacePieceFromFen(c, squareIndex);
+                PlacePieceFromFen(c, squareIndex, whitePiecesIsDraggable, blackPiecesIsDraggable);
                 squareIndex++;
             }
         }
     }
-    void PlacePieceFromFen(char fenChar, int squareIndex)
+    void PlacePieceFromFen(char fenChar, int squareIndex, bool whitePiecesIsDraggable, bool blackPiecesIsDraggable)
     {
         Piece.PieceColor color = char.IsUpper(fenChar) ? Piece.PieceColor.White : Piece.PieceColor.Black;
         Piece.PieceType type;
@@ -199,7 +198,7 @@ public class BoardManager : MonoBehaviour
         }
 
         GameObject prefab = GetPrefab(type, color);
-        PlacePiece(prefab, squareIndex, color, type);
+        PlacePiece(prefab, squareIndex, color, type, whitePiecesIsDraggable, blackPiecesIsDraggable);
     }
 
     GameObject GetPrefab(Piece.PieceType type, Piece.PieceColor color)
@@ -219,7 +218,7 @@ public class BoardManager : MonoBehaviour
 
 
     // Method to place an individual piece on a specific square based on the single index
-    void PlacePiece(GameObject piecePrefab, int squareIndex, Piece.PieceColor color, Piece.PieceType pieceType)
+    void PlacePiece(GameObject piecePrefab, int squareIndex, Piece.PieceColor color, Piece.PieceType pieceType, bool whitePiecesIsDraggable, bool blackPiecesIsDraggable)
     {
         if (squareIndex < 0 || squareIndex >= 64)
         {
@@ -255,6 +254,8 @@ public class BoardManager : MonoBehaviour
             pieceComponent.currentX = squareIndex % 8;
             pieceComponent.currentY = squareIndex / 8;
             pieceComponent.pieceType = pieceType;
+            pieceComponent.isDraggable = (color == Piece.PieceColor.White) ? whitePiecesIsDraggable : blackPiecesIsDraggable;
+
             targetSquare.occupiedPiece = pieceComponent;
 
         }
@@ -286,11 +287,6 @@ public class BoardManager : MonoBehaviour
         pieceToMoveSquare = null;
         pieceToMove = null;
         isSelectPieceToMove = false;
-    }
-
-    public void movePieceTo(GameObject pieceGameObj, int moveToIndex)
-    {
-        PlacePiece(pieceGameObj, moveToIndex, pieceToMove.pieceColor, pieceToMove.pieceType);
     }
     public List<char> GetPiecesForBitboard(string fen)
     {
