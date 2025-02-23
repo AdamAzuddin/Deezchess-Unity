@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System;
 using System.Text;
 using System.Linq;
@@ -38,9 +39,12 @@ public class BoardManager : MonoBehaviour
     public int enPassantSquareIndex;
     public string currentFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+    public bool isWhitePlayedByHuman = true;
+    public bool isBlackPlayedByHuman = true;
+    
     public Dictionary<string, int> fenOccurences = new Dictionary<string, int>(50);
 
-    
+
     [StructLayout(LayoutKind.Sequential)]
     public struct MoveIndices
     {
@@ -149,6 +153,8 @@ public class BoardManager : MonoBehaviour
 
     public void PlacePieces(bool whitePiecesIsDraggable = true, bool blackPiecesIsDraggable = true)
     {
+        isWhitePlayedByHuman = whitePiecesIsDraggable;
+        isBlackPlayedByHuman = blackPiecesIsDraggable;
         string[] fenParts = currentFen.Split(' ');
         string piecePlacement = fenParts[0];
         gameManager.isWhiteToMove = fenParts[1] == "w";

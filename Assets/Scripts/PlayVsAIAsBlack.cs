@@ -11,7 +11,6 @@ public class PlayVsAIAsBlack : MonoBehaviour
     void Start()
     {
 
-
     }
 
     public void OnClick()
@@ -22,9 +21,8 @@ public class PlayVsAIAsBlack : MonoBehaviour
         boardObject.transform.Rotate(0, 0, 180);
         boardObject.transform.position = new Vector3(-originalPosition.x, -originalPosition.y, 0);
         boardManager.PlacePieces(false, true);
-
     }
-    // Update is called once per frame
+
     void Update()
     {
 

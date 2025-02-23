@@ -22,6 +22,8 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     protected Square originalSquare;
     protected Square targetSquare;
     protected bool canDrag;
+    StockfishEngine engine = new StockfishEngine();
+    private readonly int depth = 10;
 
     public virtual void Start()
     {
@@ -240,6 +242,17 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     Debug.Log("Fen string after  updated full and half move: " + boardManager.currentFen);
                 }
                 boardManager.AddFen(boardManager.fenOccurences, fenParts[0] + fenParts[2]);
+
+                // check if next move piece color is played by computer or human
+                if (boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman)
+                {
+                    // find the best move using stockfish
+                    var bestMove = engine.GetBestMove(boardManager.currentFen, depth);
+                    Debug.Log($"From: {bestMove.Item1}, To: {bestMove.Item2}");
+                    Square targetSquare = FindSquareByIndex(bestMove.Item2);
+                    boardManager.HighlightSquare(targetSquare);
+                    // actually move the piece
+                }
                 if (halfMoveCount == 50)
                 {
                     boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");

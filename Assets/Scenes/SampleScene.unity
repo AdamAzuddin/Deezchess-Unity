@@ -5741,6 +5741,8 @@ MonoBehaviour:
   numOfMovesWithoutCaptureOrCheck: 0
   enPassantSquareIndex: 0
   currentFen: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+  isWhitePlayedByHuman: 1
+  isBlackPlayedByHuman: 1
   currentState: 2
 --- !u!4 &985776845
 Transform:
