@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -8,6 +9,12 @@ public class StockfishEngine
 {
     public static (int, int) UciMoveToBitboardIndices(string uciMove)
     {
+        if(uciMove=="0-0"){
+            return (0,0);
+        }
+        else if (uciMove=="0-0-0"){
+            return (1,1);
+        }
         if (uciMove.Length != 4)
             return (-1, -1);
 
@@ -83,6 +90,8 @@ public class StockfishEngine
             }
         }
         (int, int) bestMove = UciMoveToBitboardIndices(bestMoveStr);
+        // (0,0) = short castle
+        // (1,1) = long castle
 
         stockfish.Close();
         return bestMove;

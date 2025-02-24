@@ -348,7 +348,6 @@ public class BoardManager : MonoBehaviour
             if (move.from == currentIndex)
             {
                 legalMovesTo.Add(move.to);
-                Debug.Log("From square index: " + move.from + " To square index: " + move.to);
             }
         }
 #else
@@ -365,9 +364,6 @@ public class BoardManager : MonoBehaviour
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         // Call the getLegalMoves function from the DLL
         IntPtr movesPtr = getLegalMoves(fen, out moveCount);
-
-        // Optional: Log the moves for debugging
-        Debug.Log("Total legal moves for FEN: " + fen + " is: " + moveCount);
 #else
     Debug.Log("DLL not supported on this platform.");
 #endif
@@ -445,7 +441,7 @@ public class BoardManager : MonoBehaviour
         // Place the moving piece at the target index
         piecesList[targetIndex] = movingPiece;
 
-        Debug.Log("Current pieces on the board after moving a piece: [" + string.Join(", ", piecesList.Select(c => $"'{c}'")) + "]");
+        //Debug.Log("Current pieces on the board after moving a piece: [" + string.Join(", ", piecesList.Select(c => $"'{c}'")) + "]");
 
         // Convert the pieces list back to a FEN string
 

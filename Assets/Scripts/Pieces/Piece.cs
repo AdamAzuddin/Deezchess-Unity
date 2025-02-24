@@ -248,10 +248,35 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 {
                     // find the best move using stockfish
                     var bestMove = engine.GetBestMove(boardManager.currentFen, depth);
+
                     Debug.Log($"From: {bestMove.Item1}, To: {bestMove.Item2}");
+                    Square initialSquare = FindSquareByIndex(bestMove.Item1);
                     Square targetSquare = FindSquareByIndex(bestMove.Item2);
-                    boardManager.HighlightSquare(targetSquare);
                     // actually move the piece
+                    Piece pieceToMove = initialSquare.occupiedPiece;
+                    pieceToMove.transform.position = targetSquare.transform.position;
+                    if (pieceToMove.pieceType == PieceType.Pawn || targetSquare.occupiedPiece != null)
+                    {
+                        halfMoveCount = 0;
+                    }
+                    else
+                    {
+                        halfMoveCount++;
+                    }
+                    if(pieceToMove.pieceColor == PieceColor.Black){
+                        fullMoveCount++;
+                    }
+                    targetSquare.occupiedPiece = pieceToMove;
+                    initialSquare.occupiedPiece = null;
+                    bool isCastlingMove = false;
+                    if (initialSquare.index == targetSquare.index && initialSquare.index != -1)
+                        isCastlingMove = true;
+
+                    boardManager.MovePiece(initialSquare.index, targetSquare.index, isCastlingMove); // move in fen
+                    fenParts = boardManager.currentFen.Split(' ');
+                    boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+
+                    // reset half move if its a capture 
                 }
                 if (halfMoveCount == 50)
                 {
