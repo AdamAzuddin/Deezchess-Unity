@@ -149,8 +149,13 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     if (result.gameObject.CompareTag("Square"))
                     {
                         dropOnSquare = result.gameObject.GetComponent<Square>();
+
                         if (dropOnSquare != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
                         {
+                            if (dropOnSquare.occupiedPiece != null)
+                            {
+                                Destroy(dropOnSquare.occupiedPiece.gameObject);
+                            }
                             transform.position = dropOnSquare.transform.position;
 
                             dropOnSquare.occupiedPiece = this;
@@ -263,7 +268,8 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     {
                         halfMoveCount++;
                     }
-                    if(pieceToMove.pieceColor == PieceColor.Black){
+                    if (pieceToMove.pieceColor == PieceColor.Black)
+                    {
                         fullMoveCount++;
                     }
                     targetSquare.occupiedPiece = pieceToMove;
