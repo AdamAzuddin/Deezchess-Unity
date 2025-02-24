@@ -259,6 +259,9 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     Square targetSquare = FindSquareByIndex(bestMove.Item2);
                     // actually move the piece
                     Piece pieceToMove = initialSquare.occupiedPiece;
+                    if(targetSquare.occupiedPiece!=null){
+                        Destroy(targetSquare.occupiedPiece.gameObject);
+                    }
                     pieceToMove.transform.position = targetSquare.transform.position;
                     if (pieceToMove.pieceType == PieceType.Pawn || targetSquare.occupiedPiece != null)
                     {
