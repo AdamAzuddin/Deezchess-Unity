@@ -22,7 +22,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     protected Square originalSquare;
     protected Square targetSquare;
     protected bool canDrag;
-    StockfishEngine engine = new StockfishEngine();
+    readonly StockfishEngine engine = new StockfishEngine();
     private readonly int depth = 10;
 
     public virtual void Start()
