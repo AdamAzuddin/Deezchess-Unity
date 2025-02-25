@@ -33,19 +33,19 @@ public class Pawn : Piece
         if (hasMoved)
         {
             PieceColor enemyColor = pieceColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
-
+            string[] fenParts = boardManager.currentFen.Split(' ');
             int direction = pieceColor == PieceColor.White ? -8 : 8;
             Square enPassantCapturedSquare = boardManager.gameManager.GetSquareByIndex(targetSquare.index + direction);
 
             // Capture en passant if the square contains an enemy pawn
             if (enPassantCapturedSquare.occupiedPiece != null &&
                 enPassantCapturedSquare.occupiedPiece.pieceType == PieceType.Pawn &&
-                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor)
+                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor && fenParts[3]!="-")
             {
                 Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
                 enPassantCapturedSquare.occupiedPiece = null;
             }
-            string[] fenParts = boardManager.currentFen.Split(' ');
+            
             boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " 0 " + fenParts[5];
             Debug.Log("Fen string after resetted half move: " + boardManager.currentFen);
         }
