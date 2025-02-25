@@ -154,11 +154,14 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
                         if (dropOnSquare != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
                         {
-                            if (dropOnSquare.occupiedPiece != null)
+                            if (dropOnSquare.occupiedPiece != null && (dropOnSquare.color == Color.red || dropOnSquare.spriteRenderer.color == Color.red))
                             {
+                                Debug.Log("Destroyed");
                                 Destroy(dropOnSquare.occupiedPiece.gameObject);
                             }
                             transform.position = dropOnSquare.transform.position;
+                            currentX = dropOnSquare.index % 8;
+                            currentY = dropOnSquare.index / 8;
 
                             dropOnSquare.occupiedPiece = this;
                             if (originalSquare != null)
@@ -180,8 +183,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
                         else
                         {
-                            transform.position = originalSquare.transform.position;
-                            targetSquare = null;
                             hasMoved = false;
                             break;
                         }
@@ -191,9 +192,18 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         Piece otherPiece = result.gameObject.GetComponent<Piece>();
                         if (otherPiece != null && ((boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.White) || (!boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.Black)))
                         {
-                            Destroy(otherPiece.gameObject);
-                            Debug.Log("Other piece deleted");
+                            int idx = GetSquareIndex(otherPiece.currentX, otherPiece.currentY);
+                            Square otherPieceSquare = FindSquareByIndex(idx);
 
+                            for (int i = 0; i < boardManager.highlightedSquares.Count; i++)
+                            {
+                                if (boardManager.highlightedSquares[i].index == idx)
+                                {
+                                    Destroy(otherPiece.gameObject);
+                                    Debug.Log("Deleted " + otherPiece.pieceColor + " " + otherPiece.pieceType + " at index " + idx);
+                                }
+
+                            }
                             List<RaycastResult> raycastSquare = new List<RaycastResult>();
                             EventSystem.current.RaycastAll(pointerData, raycastSquare);
 
@@ -205,6 +215,8 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                     if (square != null && square.color != square.spriteRenderer.color)
                                     {
                                         transform.position = square.transform.position;
+                                        currentX = square.index % 8;
+                                        currentY = square.index / 8;
                                         square.occupiedPiece = this;
                                         if (originalSquare != null)
                                         {
@@ -223,8 +235,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                     }
                                     else
                                     {
-                                        transform.position = originalSquare.transform.position;
-                                        targetSquare = null;
                                         hasMoved = false;
                                         break;
                                     }
@@ -233,8 +243,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         }
                         else
                         {
-                            transform.position = originalSquare.transform.position;
-                            targetSquare = null;
+                            hasMoved = false;
                             break;
                         }
 
@@ -273,6 +282,8 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         Destroy(targetSquare.occupiedPiece.gameObject);
                     }
                     pieceToMove.transform.position = targetSquare.transform.position;
+                    pieceToMove.currentX = targetSquare.index % 8;
+                    pieceToMove.currentY = targetSquare.index / 8;
                     hasMoved = true;
                     if (pieceToMove.pieceType == PieceType.Pawn || targetSquare.occupiedPiece != null)
                     {
@@ -316,6 +327,13 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
             }
         }
+        if (!hasMoved)
+        {
+            transform.position = originalSquare.transform.position;
+            currentX = originalSquare.index % 8;
+            currentY = originalSquare.index / 8;
+            targetSquare = null;
+        }
     }
     public void OnPointerClick(PointerEventData eventData)
     {
@@ -325,5 +343,10 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     public Square FindSquareByIndex(int targetIndex)
     {
         return boardManager.gameManager.GetSquareByIndex(targetIndex);
+    }
+
+    public int GetSquareIndex(int currentX, int currentY)
+    {
+        return (currentY * 8) + currentX;
     }
 }

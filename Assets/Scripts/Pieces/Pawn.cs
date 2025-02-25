@@ -40,14 +40,19 @@ public class Pawn : Piece
             // Capture en passant if the square contains an enemy pawn
             if (enPassantCapturedSquare.occupiedPiece != null &&
                 enPassantCapturedSquare.occupiedPiece.pieceType == PieceType.Pawn &&
-                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor && fenParts[3]!="-")
+                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor && fenParts[3] != "-")
             {
                 Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
+                Debug.Log("Captured en passantly");
                 enPassantCapturedSquare.occupiedPiece = null;
             }
-            
+
             boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " 0 " + fenParts[5];
             Debug.Log("Fen string after resetted half move: " + boardManager.currentFen);
+        }
+        else
+        {
+            transform.position = originalSquare.transform.position;
         }
 
     }
