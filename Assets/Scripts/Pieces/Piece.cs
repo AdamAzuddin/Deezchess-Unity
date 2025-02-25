@@ -25,6 +25,8 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     readonly StockfishEngine engine = new StockfishEngine();
     private readonly int depth = 10;
 
+    private bool hasMoved = false;
+
     public virtual void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -171,6 +173,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                             {
                                 fullMoveCount++;
                             }
+                            hasMoved = true;
                             halfMoveCount++;
                             break;
                         }
@@ -179,6 +182,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         {
                             transform.position = originalSquare.transform.position;
                             targetSquare = null;
+                            hasMoved = false;
                             break;
                         }
                     }
@@ -213,6 +217,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                         {
                                             fullMoveCount++;
                                         }
+                                        hasMoved = true;
                                         halfMoveCount = 0;
                                         break;
                                     }
@@ -220,6 +225,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                     {
                                         transform.position = originalSquare.transform.position;
                                         targetSquare = null;
+                                        hasMoved = false;
                                         break;
                                     }
                                 }
@@ -246,7 +252,10 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 {
                     Debug.Log("Fen string after  updated full and half move: " + boardManager.currentFen);
                 }
-                boardManager.AddFen(boardManager.fenOccurences, fenParts[0] + fenParts[2]);
+                if (hasMoved)
+                {
+                    boardManager.AddFen(boardManager.fenOccurences, fenParts[0] + fenParts[2]);
+                }
 
                 // check if next move piece color is played by computer or human
                 if (boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman)
@@ -259,10 +268,12 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     Square targetSquare = FindSquareByIndex(bestMove.Item2);
                     // actually move the piece
                     Piece pieceToMove = initialSquare.occupiedPiece;
-                    if(targetSquare.occupiedPiece!=null){
+                    if (targetSquare.occupiedPiece != null)
+                    {
                         Destroy(targetSquare.occupiedPiece.gameObject);
                     }
                     pieceToMove.transform.position = targetSquare.transform.position;
+                    hasMoved = true;
                     if (pieceToMove.pieceType == PieceType.Pawn || targetSquare.occupiedPiece != null)
                     {
                         halfMoveCount = 0;
