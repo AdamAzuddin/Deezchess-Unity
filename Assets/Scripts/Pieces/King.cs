@@ -25,8 +25,11 @@ public class King : Piece
             string[] fenParts = boardManager.currentFen.Split(' ');
             string castlingRights = fenParts[2];
             int distanceBetweenTargetAndOriginalIndex = targetSquare.index - originalSquare.index;
+            int rookOriginalIndex = 0;
+            int rookCastledIndex = 0;
             Piece rookToCastleWith;
             Square castledRookTargetSquare;
+            Square rookOriginalSquare;
             if (Mathf.Abs(distanceBetweenTargetAndOriginalIndex) == 2)
             {
                 if (pieceColor == PieceColor.White)
@@ -36,27 +39,21 @@ public class King : Piece
                         // Kingside castling for White
                         if (castlingRights.Contains("K"))
                         {
-                            rookToCastleWith = FindSquareByIndex(7).occupiedPiece;
-                            castledRookTargetSquare = FindSquareByIndex(5);
-                            rookToCastleWith.transform.position = castledRookTargetSquare.transform.position;
-                            boardManager.MovePiece(7, 5, true);
-                            castlingRights = castlingRights.Replace("Q", "");
-                            castlingRights = castlingRights.Replace("K", "");
+                            rookOriginalIndex = 7;
+                            rookCastledIndex = 5;
                         }
                     }
-                    else if (distanceBetweenTargetAndOriginalIndex < 0)
+                    else
                     {
                         // Queenside castling for White
                         if (castlingRights.Contains("Q"))
                         {
-                            rookToCastleWith = FindSquareByIndex(0).occupiedPiece;
-                            castledRookTargetSquare = FindSquareByIndex(3);
-                            rookToCastleWith.transform.position = castledRookTargetSquare.transform.position;
-                            boardManager.MovePiece(0, 3, true);
-                            castlingRights = castlingRights.Replace("Q", "");
-                            castlingRights = castlingRights.Replace("K", "");
+                            rookOriginalIndex = 0;
+                            rookCastledIndex = 3;
                         }
                     }
+                    castlingRights = castlingRights.Replace("Q", "");
+                    castlingRights = castlingRights.Replace("K", "");
                 }
                 else if (pieceColor == PieceColor.Black)
                 {
@@ -65,44 +62,31 @@ public class King : Piece
                         // Kingside castling for Black
                         if (castlingRights.Contains("k"))
                         {
-                            rookToCastleWith = FindSquareByIndex(63).occupiedPiece;
-                            castledRookTargetSquare = FindSquareByIndex(61);
-                            rookToCastleWith.transform.position = castledRookTargetSquare.transform.position;
-                            boardManager.MovePiece(63, 61, true);
-                            castlingRights = castlingRights.Replace("k", "");
-                            castlingRights = castlingRights.Replace("q", "");
-
+                            rookOriginalIndex = 63;
+                            rookCastledIndex = 61;
                         }
                     }
-                    else if (distanceBetweenTargetAndOriginalIndex < 0)
+                    else
                     {
                         // Queenside castling for Black
                         if (castlingRights.Contains("q"))
                         {
-                            rookToCastleWith = FindSquareByIndex(56).occupiedPiece;
-                            castledRookTargetSquare = FindSquareByIndex(59);
-                            rookToCastleWith.transform.position = castledRookTargetSquare.transform.position;
-                            boardManager.MovePiece(56, 59, true);
-                            castlingRights = castlingRights.Replace("q", "");
-                            castlingRights = castlingRights.Replace("k", "");
+                            rookOriginalIndex = 56;
+                            rookCastledIndex = 59;
                         }
                     }
-                }
-            }
-            else
-            {
-                if (pieceColor == PieceColor.White && (castlingRights.Contains("K") || castlingRights.Contains("Q")))
-                {
-                    castlingRights = castlingRights.Replace("K", "");
-                    castlingRights = castlingRights.Replace("Q", "");
-                }
-
-                else if (pieceColor == PieceColor.Black && (castlingRights.Contains("k") || castlingRights.Contains("q")))
-                {
                     castlingRights = castlingRights.Replace("k", "");
                     castlingRights = castlingRights.Replace("q", "");
                 }
+                rookToCastleWith = FindSquareByIndex(rookOriginalIndex).occupiedPiece;
+                castledRookTargetSquare = FindSquareByIndex(rookCastledIndex);
+                rookOriginalSquare = FindSquareByIndex(rookOriginalIndex);
+                rookToCastleWith.transform.position = castledRookTargetSquare.transform.position;
+                castledRookTargetSquare.occupiedPiece = rookToCastleWith;
+                rookOriginalSquare.occupiedPiece = null;
+                boardManager.MovePiece(rookOriginalIndex, rookCastledIndex, true);
             }
+
             fenParts = boardManager.currentFen.Split(' ');
             if (castlingRights == "")
             {
