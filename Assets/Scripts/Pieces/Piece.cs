@@ -25,7 +25,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     readonly StockfishEngine engine = new StockfishEngine();
     private readonly int depth = 10;
 
-    private bool hasMoved = false;
+    public bool hasMoved = false;
 
     public virtual void Start()
     {

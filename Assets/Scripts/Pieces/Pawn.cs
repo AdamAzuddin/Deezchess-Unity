@@ -30,22 +30,26 @@ public class Pawn : Piece
     public override void OnEndDrag(PointerEventData eventData)
     {
         base.OnEndDrag(eventData);
-        PieceColor enemyColor = pieceColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
-        
-        int direction = pieceColor == PieceColor.White ? -8 : 8;
-        Square enPassantCapturedSquare = boardManager.gameManager.GetSquareByIndex(targetSquare.index + direction);
-
-        // Capture en passant if the square contains an enemy pawn
-        if (enPassantCapturedSquare.occupiedPiece != null &&
-            enPassantCapturedSquare.occupiedPiece.pieceType == PieceType.Pawn &&
-            enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor)
+        if (hasMoved)
         {
-            Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
-            enPassantCapturedSquare.occupiedPiece = null;
+            PieceColor enemyColor = pieceColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
+
+            int direction = pieceColor == PieceColor.White ? -8 : 8;
+            Square enPassantCapturedSquare = boardManager.gameManager.GetSquareByIndex(targetSquare.index + direction);
+
+            // Capture en passant if the square contains an enemy pawn
+            if (enPassantCapturedSquare.occupiedPiece != null &&
+                enPassantCapturedSquare.occupiedPiece.pieceType == PieceType.Pawn &&
+                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor)
+            {
+                Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
+                enPassantCapturedSquare.occupiedPiece = null;
+            }
+            string[] fenParts = boardManager.currentFen.Split(' ');
+            boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " 0 " + fenParts[5];
+            Debug.Log("Fen string after resetted half move: " + boardManager.currentFen);
         }
-        string[] fenParts = boardManager.currentFen.Split(' ');
-        boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " 0 " + fenParts[5];
-        Debug.Log("Fen string after resetted half move: "+boardManager.currentFen);
+
     }
 
     public override void OnBeginDrag(PointerEventData eventData)
