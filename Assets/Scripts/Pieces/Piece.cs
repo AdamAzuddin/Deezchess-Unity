@@ -267,12 +267,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     boardManager.AddFen(boardManager.fenOccurences, fenParts[0] + fenParts[2]);
                 }
 
-                // check if next move piece color is played by computer or human
-                if ((boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman) && pieceType != PieceType.King && Math.Abs(originalSquare.index - targetSquare.index) != 2)
-                {
-                    EngineMove(boardManager.currentFen, depth, halfMoveCount, fullMoveCount);
-                    // reset half move if its a capture 
-                }
+                
                 if (halfMoveCount == 50)
                 {
                     boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
@@ -287,6 +282,24 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     {
                         boardManager.gameManager.ShowGameOver("White win");
                     }
+                }
+
+                // check if next move piece color is played by computer or human
+                if ((boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman) && pieceType != PieceType.King && Math.Abs(originalSquare.index - targetSquare.index) != 2)
+                {
+                    EngineMove(boardManager.currentFen, depth, halfMoveCount, fullMoveCount);
+
+                    Debug.Log("Fen after stockfish move: " + boardManager.currentFen);
+                    //Check if its game over
+                    if (halfMoveCount == 50)
+                    {
+                        boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
+                    }
+                    if (boardManager.GetNumberOfLegalMoves(boardManager.currentFen) == 0)
+                    {
+                        boardManager.gameManager.ShowGameOver("You Lose!");
+                    }
+                    // reset half move if its a capture 
                 }
 
             }
@@ -316,7 +329,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
     public (int, int) UciMoveToBitboardIndices(string uciMove)
     {
-        //TODO: flag castling move by stockfish
 
         // (0,0) = short castle white
         // (1,1) = long castle white
@@ -434,7 +446,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             int kingTargetSquareIndex = 0;
             int rookTargetSquareIndex = 0;
             int originalRookIndex = 0;
-            
+
             bool isWhiteCastling = true;
 
             Piece whiteKing = FindSquareByIndex(4).occupiedPiece;
@@ -493,6 +505,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
             fenParts[0] = boardManager.currentFen.Split(' ')[0];
             string sideToMove = fenParts[1];
+
             if (sideToMove == "w")
             {
                 sideToMove = "b";
@@ -501,11 +514,13 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
             {
                 sideToMove = "w";
             }
+
+
             boardManager.gameManager.isWhiteToMove = !boardManager.gameManager.isWhiteToMove;
             boardManager.currentFen = fenParts[0] + " " + sideToMove + " " + castlingRights + " " + fenParts[3] + " " + fenParts[4] + " " + fenParts[5];
-            Debug.Log("Stockfish castled! Current fen: "+boardManager.currentFen);
+            Debug.Log("Stockfish castled! Current fen: " + boardManager.currentFen);
+
         }
-        Debug.Log("Fen after stockfish move: " + boardManager.currentFen);
     }
 
 }
