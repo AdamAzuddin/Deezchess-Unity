@@ -17,7 +17,7 @@ public class Pawn : Piece
             {
                 int enPassantSquareIndex = boardManager.UciSquareToBitboardIndex(fenParts[3]);
                 Debug.Log(fenParts[2]);
-                Square enPassantSquare = FindSquareByIndex(enPassantSquareIndex);
+                Square enPassantSquare = boardManager.FindSquareByIndex(enPassantSquareIndex);
                 int diffBetweenCurrentIndexAndenPassantIndex = Mathf.Abs(originalSquare.index - enPassantSquareIndex);
                 if (diffBetweenCurrentIndexAndenPassantIndex > 6 && diffBetweenCurrentIndexAndenPassantIndex < 10 && enPassantSquare != null)
                 {

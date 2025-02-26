@@ -78,9 +78,9 @@ public class King : Piece
                     castlingRights = castlingRights.Replace("k", "");
                     castlingRights = castlingRights.Replace("q", "");
                 }
-                rookToCastleWith = FindSquareByIndex(rookOriginalIndex).occupiedPiece;
-                castledRookTargetSquare = FindSquareByIndex(rookCastledIndex);
-                rookOriginalSquare = FindSquareByIndex(rookOriginalIndex);
+                rookToCastleWith = boardManager.FindSquareByIndex(rookOriginalIndex).occupiedPiece;
+                castledRookTargetSquare = boardManager.FindSquareByIndex(rookCastledIndex);
+                rookOriginalSquare = boardManager.FindSquareByIndex(rookOriginalIndex);
                 rookToCastleWith.transform.position = castledRookTargetSquare.transform.position;
                 castledRookTargetSquare.occupiedPiece = rookToCastleWith;
                 rookOriginalSquare.occupiedPiece = null;
@@ -99,7 +99,7 @@ public class King : Piece
             Debug.Log("Fen after castling: " + boardManager.currentFen);
             if (boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman)
             {
-                EngineMove(boardManager.currentFen, depth, halfMoveCount, fullMoveCount);
+                boardManager.EngineMove(boardManager.currentFen, boardManager.searchDepth, halfMoveCount, fullMoveCount);
             }
         }
     }

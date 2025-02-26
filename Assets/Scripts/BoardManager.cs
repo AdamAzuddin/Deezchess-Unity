@@ -24,7 +24,7 @@ public class BoardManager : MonoBehaviour
     public GameObject blackQueenPrefab;
     public GameObject blackKingPrefab;
 
-    private Square[] squares = new Square[64];
+    public Square[] squares = new Square[64];
 
 
     public List<Square> highlightedSquares = new List<Square>();
@@ -37,12 +37,16 @@ public class BoardManager : MonoBehaviour
 
     public int numOfMovesWithoutCaptureOrCheck = 0;
     public int enPassantSquareIndex;
+    public readonly int searchDepth = 10;
     public string currentFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
     public bool isWhitePlayedByHuman = true;
     public bool isBlackPlayedByHuman = true;
-    
+
     public Dictionary<string, int> fenOccurences = new Dictionary<string, int>(50);
+
+
+    public readonly StockfishEngine engine = new StockfishEngine();
 
 
     [StructLayout(LayoutKind.Sequential)]
@@ -120,20 +124,6 @@ public class BoardManager : MonoBehaviour
                 Debug.LogError($"Square component is missing on child at index {index}");
             }
         }
-    }
-
-    public int UciSquareToBitboardIndex(string square)
-    {
-        if (square.Length != 2)
-            return -1;
-
-        char file = square[0];
-        char rank = square[1];
-
-        int fileIndex = file - 'a';
-        int rankIndex = rank - '1';
-
-        return rankIndex * 8 + fileIndex;
     }
 
     string BitboardIndexToUci(int index)
@@ -557,5 +547,209 @@ public class BoardManager : MonoBehaviour
             }
         }
     }
+
+    public (int, int) UciMoveToBitboardIndices(string uciMove)
+    {
+
+        // (0,0) = short castle white
+        // (1,1) = long castle white
+        // (2,2) = short castle black
+        // (3,3) = long castle black
+
+        if (uciMove.Length != 4)
+            return (-1, -1);
+
+        string fromSquare = uciMove.Substring(0, 2);
+        string toSquare = uciMove.Substring(2, 2);
+        string castlingRights = currentFen.Split(" ")[2];
+
+        int fromIndex = UciSquareToBitboardIndex(fromSquare);
+        int toIndex = UciSquareToBitboardIndex(toSquare);
+
+        // Castling logic
+
+        Square whiteKingSquare = FindSquareByIndex(4);
+        Square blackKingSquare = FindSquareByIndex(60);
+
+        if (whiteKingSquare.occupiedPiece != null && whiteKingSquare.occupiedPiece.pieceType == Piece.PieceType.King && whiteKingSquare.occupiedPiece.pieceColor == Piece.PieceColor.White && gameManager.isWhiteToMove)
+        {
+            if (uciMove == "e1g1" && castlingRights.Contains("K"))
+            {
+                return (0, 0);
+            }
+            else if (uciMove == "e1c1" && castlingRights.Contains("Q"))
+            {
+                return (1, 1);
+            }
+        }
+        else if (blackKingSquare.occupiedPiece != null && blackKingSquare.occupiedPiece.pieceType == Piece.PieceType.King && blackKingSquare.occupiedPiece.pieceColor == Piece.PieceColor.Black && !gameManager.isWhiteToMove)
+        {
+            if (uciMove == "e8g8" && castlingRights.Contains("k"))
+            {
+                return (2, 2);
+            }
+            else if (uciMove == "e8c8" && castlingRights.Contains("q"))
+            {
+                return (3, 3);
+            }
+        }
+
+        return (fromIndex, toIndex);
+    }
+
+    public int UciSquareToBitboardIndex(string square)
+    {
+        // Example logic: Convert "e2" to bitboard index
+        if (square.Length != 2)
+            return -1;
+
+        char file = square[0]; // 'a' to 'h'
+        char rank = square[1]; // '1' to '8'
+
+        if (file < 'a' || file > 'h' || rank < '1' || rank > '8')
+            return -1;
+
+        return (rank - '1') * 8 + (file - 'a'); // Convert to 0-63 index
+    }
+
+    public Square FindSquareByIndex(int targetIndex)
+    {
+        return gameManager.GetSquareByIndex(targetIndex);
+    }
+
+    public void EngineMove(string fen, int depth, int halfMoveCount, int fullMoveCount)
+    {
+        // find the best move using stockfish
+        var bestMove = UciMoveToBitboardIndices(engine.GetBestMove(fen, depth));
+        if(bestMove.Item1==-1){
+            gameManager.ShowGameOver("Stockfish gave invalid Move");
+        }
+
+        bool isCastling = false;
+        if (bestMove.Item2 == bestMove.Item1 && bestMove.Item1 != -1)
+        {
+            isCastling = true;
+        }
+        if (!isCastling)
+        {
+            Debug.Log($"Stockfish move from: {bestMove.Item1}, To: {bestMove.Item2}");
+            Square initialSquare = FindSquareByIndex(bestMove.Item1);
+            Square targetSquare = FindSquareByIndex(bestMove.Item2);
+
+            // actually move the piece
+            Piece pieceToMove = initialSquare.occupiedPiece;
+            if (targetSquare.occupiedPiece != null)
+            {
+                Destroy(targetSquare.occupiedPiece.gameObject);
+            }
+            pieceToMove.transform.position = targetSquare.transform.position;
+            pieceToMove.currentX = targetSquare.index % 8;
+            pieceToMove.currentY = targetSquare.index / 8;
+            if (pieceToMove.pieceType == Piece.PieceType.Pawn || targetSquare.occupiedPiece != null)
+            {
+                halfMoveCount = 0;
+            }
+            else
+            {
+                halfMoveCount++;
+            }
+            if (pieceToMove.pieceColor == Piece.PieceColor.Black)
+            {
+                fullMoveCount++;
+            }
+            targetSquare.occupiedPiece = pieceToMove;
+            initialSquare.occupiedPiece = null;
+            bool isCastlingMove = false;
+            if (initialSquare.index == targetSquare.index && initialSquare.index != -1)
+                isCastlingMove = true;
+
+            MovePiece(initialSquare.index, targetSquare.index, isCastlingMove); // move in fen
+            string[] fenParts = currentFen.Split(' ');
+            currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+        }
+
+        // castling move
+        else
+        {
+            int kingTargetSquareIndex = 0;
+            int rookTargetSquareIndex = 0;
+            int originalRookIndex = 0;
+
+            bool isWhiteCastling = true;
+
+            Piece whiteKing = FindSquareByIndex(4).occupiedPiece;
+            Piece blackKing = FindSquareByIndex(60).occupiedPiece;
+            switch (bestMove.Item1)
+            {
+                case 0:
+                    kingTargetSquareIndex = 6;
+                    rookTargetSquareIndex = 5;
+                    originalRookIndex = 7;
+                    break;
+                case 1:
+                    kingTargetSquareIndex = 2;
+                    rookTargetSquareIndex = 3;
+                    originalRookIndex = 0;
+                    break;
+                case 2:
+                    kingTargetSquareIndex = 62;
+                    rookTargetSquareIndex = 61;
+                    originalRookIndex = 63;
+                    isWhiteCastling = false;
+                    break;
+                case 3:
+                    kingTargetSquareIndex = 58;
+                    rookTargetSquareIndex = 59;
+                    originalRookIndex = 56;
+                    isWhiteCastling = false;
+                    break;
+            }
+            string[] fenParts = currentFen.Split(' ');
+            string castlingRights = fenParts[2];
+            if (isWhiteCastling)
+            {
+                whiteKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
+                FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = whiteKing;
+                FindSquareByIndex(4).occupiedPiece = null;
+                MovePiece(4, kingTargetSquareIndex, true);
+                castlingRights = castlingRights.Replace("K", "").Replace("Q", "");
+            }
+            else
+            {
+                blackKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
+                FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = blackKing;
+                FindSquareByIndex(60).occupiedPiece = null;
+                MovePiece(60, kingTargetSquareIndex, true);
+                castlingRights = castlingRights.Replace("q", "").Replace("q", "");
+            }
+            if (castlingRights == "")
+            {
+                castlingRights = "-";
+            }
+            FindSquareByIndex(originalRookIndex).occupiedPiece.transform.position = FindSquareByIndex(rookTargetSquareIndex).transform.position;
+            MovePiece(originalRookIndex, rookTargetSquareIndex, true);
+            FindSquareByIndex(rookTargetSquareIndex).occupiedPiece = FindSquareByIndex(originalRookIndex).occupiedPiece;
+            FindSquareByIndex(originalRookIndex).occupiedPiece = null;
+
+            fenParts[0] = currentFen.Split(' ')[0];
+            string sideToMove = fenParts[1];
+
+            if (sideToMove == "w")
+            {
+                sideToMove = "b";
+            }
+            else
+            {
+                sideToMove = "w";
+            }
+
+
+            gameManager.isWhiteToMove = !gameManager.isWhiteToMove;
+            currentFen = fenParts[0] + " " + sideToMove + " " + castlingRights + " " + fenParts[3] + " " + fenParts[4] + " " + fenParts[5];
+            Debug.Log("Stockfish castled! Current fen: " + currentFen);
+        }
+    }
+
+
 
 }
