@@ -21,6 +21,7 @@ public class PlayVsAIAsBlack : MonoBehaviour
         boardObject.transform.Rotate(0, 0, 180);
         boardObject.transform.position = new Vector3(-originalPosition.x, -originalPosition.y, 0);
         boardManager.PlacePieces(false, true);
+        boardManager.EngineMove(boardManager.currentFen, boardManager.searchDepth,0,0);
     }
 
     void Update()
