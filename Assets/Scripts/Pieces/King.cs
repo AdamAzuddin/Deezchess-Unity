@@ -92,8 +92,15 @@ public class King : Piece
             {
                 castlingRights = "-";
             }
+
+            int halfMoveCount = int.Parse(fenParts[4]);
+            int fullMoveCount = int.Parse(fenParts[5]);
             boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + castlingRights + " " + fenParts[3] + " " + fenParts[4] + " " + fenParts[5];
             Debug.Log("Fen after castling: " + boardManager.currentFen);
+            if (boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman)
+            {
+                EngineMove(boardManager.currentFen, depth, halfMoveCount, fullMoveCount);
+            }
         }
     }
 
