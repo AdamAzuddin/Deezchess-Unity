@@ -2259,7 +2259,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56aa4db42aa72494a8c6016ccb1d3edd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameManager: {fileID: 0}
+  boardManager: {fileID: 985776844}
   pieceType: 2
   pieceColor: 0
 --- !u!114 &330593070
@@ -5285,6 +5285,7 @@ MonoBehaviour:
   bB: {fileID: 21300000, guid: 759f486643228f14b944d7624627f2e8, type: 3}
   bQ: {fileID: 21300000, guid: 7ac9c2063cb280c4e9e509570a276896, type: 3}
   mainCamera: {fileID: 519420031}
+  pawnPromotionSquareIndex: 0
 --- !u!1 &942081890
 GameObject:
   m_ObjectHideFlags: 0
@@ -9179,7 +9180,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56aa4db42aa72494a8c6016ccb1d3edd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameManager: {fileID: 0}
+  boardManager: {fileID: 985776844}
   pieceType: 1
   pieceColor: 0
 --- !u!114 &1570250997
@@ -10563,7 +10564,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56aa4db42aa72494a8c6016ccb1d3edd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameManager: {fileID: 0}
+  boardManager: {fileID: 985776844}
   pieceType: 3
   pieceColor: 0
 --- !u!114 &1790054295
@@ -12642,7 +12643,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 56aa4db42aa72494a8c6016ccb1d3edd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameManager: {fileID: 0}
+  boardManager: {fileID: 985776844}
   pieceType: 4
   pieceColor: 0
 --- !u!114 &2119202547
