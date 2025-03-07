@@ -120,6 +120,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                         Debug.Log("Occupied piece color: " + square.occupiedPiece.pieceColor);
                         canDrag = false;
                     }
+                    originalSquare = square;
                     break;
                 }
             }
