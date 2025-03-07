@@ -234,7 +234,7 @@ public class BoardManager : MonoBehaviour
         string[] updatedFenParts = currentFen.Split(' ');
         updatedFenParts[1] = currentTurn;
 
-        gameManager.isWhiteToMove = (currentTurn == "w") ? true : false; 
+        gameManager.isWhiteToMove = (currentTurn == "w") ? true : false;
 
         // Join the parts back into a full FEN string
         currentFen = string.Join(" ", updatedFenParts);
@@ -665,7 +665,18 @@ public class BoardManager : MonoBehaviour
     public void EngineMove(string fen, int depth, int halfMoveCount, int fullMoveCount)
     {
         // find the best move using stockfish
-        var bestMove = UciMoveToBitboardIndices(engine.GetBestMove(fen, depth));
+        string bestMoveUci = engine.GetBestMove(fen, depth);
+        bool isPromotionMove = false;
+        char pieceToPromoteWith = ' ';
+        // check if its a promotion!
+        if (bestMoveUci.Length == 5)
+        {
+            isPromotionMove = true;
+            pieceToPromoteWith = bestMoveUci[^1]; // Get the last character as string
+            bestMoveUci = bestMoveUci.Remove(bestMoveUci.Length-1);
+        }
+        Debug.Log("BestMoveUCI length: "+bestMoveUci.Length);
+        var bestMove = UciMoveToBitboardIndices(bestMoveUci);
         if (bestMove.Item1 == -1)
         {
             gameManager.ShowGameOver("Stockfish gave invalid Move");
@@ -712,6 +723,30 @@ public class BoardManager : MonoBehaviour
             MovePiece(initialSquare.index, targetSquare.index, isCastlingMove); // move in fen
             string[] fenParts = currentFen.Split(' ');
             currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+
+            if (isPromotionMove)
+            {
+                if (targetSquare.occupiedPiece != null)
+                {
+                    // change occupied piece from pawn to the selected piece
+                    Destroy(targetSquare.occupiedPiece.gameObject);
+                    targetSquare.occupiedPiece = null;
+                    Debug.Log("Stockfish want to promote to "+pieceToPromoteWith);
+                    Debug.Log("Current color to move: "+currentFen.Split()[1]);
+                    Piece.PieceColor pieceToPromoteWithColor = (currentFen.Split()[1]=="b") ? Piece.PieceColor.White : Piece.PieceColor.Black;
+                    Piece.PieceType pieceToPromoteWithType = char.ToLower(pieceToPromoteWith) switch // Convert to lowercase to handle case-insensitivity
+                    {
+                        'q' => Piece.PieceType.Queen,
+                        'r' => Piece.PieceType.Rook,
+                        'b' => Piece.PieceType.Bishop,
+                        'n' => Piece.PieceType.Knight,
+                        _ => Piece.PieceType.Queen,// Default to Queen if input is invalid
+                    };
+                    GameObject promotionPiecePrefab = GetPrefab(pieceToPromoteWithType, pieceToPromoteWithColor);
+                    PlacePiece(promotionPiecePrefab, targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType, isWhitePlayedByHuman, isBlackPlayedByHuman);
+                    UpdateFenAfterPromotion(targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType);
+                }
+            }
         }
 
         // castling move

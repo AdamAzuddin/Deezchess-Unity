@@ -124,7 +124,6 @@ public class GameManager : MonoBehaviour
 
     public void HidePawnPromotionPopup()
     {
-        Debug.Log("Selected a Piece to promote!");
         // Show the "Pieces" layer again in the main camera
         mainCamera.cullingMask |= 1 << piecesLayer;
         pawnPromotionPopup.SetActive(false);

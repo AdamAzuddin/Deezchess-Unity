@@ -15,7 +15,6 @@ public class PieceToPromoteWithButton : MonoBehaviour
         if (promotionSquare.occupiedPiece != null)
         {
             // change occupied piece from pawn to the selected piece
-            Debug.Log(promotionSquare.occupiedPiece);
             Destroy(promotionSquare.occupiedPiece.gameObject);
             promotionSquare.occupiedPiece = null;
             GameObject promotionPiecePrefab = boardManager.GetPrefab(pieceType, pieceColor);
