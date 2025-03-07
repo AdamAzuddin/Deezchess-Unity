@@ -11,15 +11,29 @@ public class GameManager : MonoBehaviour
     public bool blackCanShortCastle = true;
     public bool blackCanLongCastle = true;
     public GameObject gameOverPopup;
+    public GameObject pawnPromotionPopup;
     public GameObject resultTextGameObject;
+
+    public GameObject promotionRook;
+    public GameObject promotionKnight;
+    public GameObject promotionBishop;
+    public GameObject promotionQueen;
+    public Sprite wR, wN, wB, wQ;
+    public Sprite bR, bN, bB, bQ;
+
+    public Camera mainCamera;
+
     private Text resultText;
 
-    // Start is called before the first frame update
     private Dictionary<int, Square> squareDictionary;
+    private int piecesLayer;
+
+    public int pawnPromotionSquareIndex;
 
     void Start()
     {
         GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
+        piecesLayer  = LayerMask.NameToLayer("Pieces");
         squareDictionary = new Dictionary<int, Square>();
         if (resultTextGameObject != null)
         {
@@ -69,11 +83,51 @@ public class GameManager : MonoBehaviour
             resultText.text = text;
         }
         gameOverPopup.SetActive(true);
+
     }
+
+
 
     public void HideGameOver()
     {
         gameOverPopup.SetActive(false);
+    }
+
+    public void ShowPawnPromotionPopup(Piece.PieceColor color)
+    {
+
+        if (color == Piece.PieceColor.White)
+        {
+            promotionRook.GetComponent<Button>().image.sprite = wR;
+            promotionKnight.GetComponent<Button>().image.sprite = wN;
+            promotionBishop.GetComponent<Button>().image.sprite = wB;
+            promotionQueen.GetComponent<Button>().image.sprite = wQ;
+        }
+        else
+        {
+            promotionRook.GetComponent<Button>().image.sprite = bR;
+            promotionRook.GetComponent<PieceToPromoteWithButton>().pieceColor = Piece.PieceColor.Black;
+            promotionKnight.GetComponent<Button>().image.sprite = bN;
+            promotionKnight.GetComponent<PieceToPromoteWithButton>().pieceColor = Piece.PieceColor.Black;
+            promotionBishop.GetComponent<Button>().image.sprite = bB;
+            promotionBishop.GetComponent<PieceToPromoteWithButton>().pieceColor = Piece.PieceColor.Black;
+            promotionQueen.GetComponent<Button>().image.sprite = bQ;
+            promotionQueen.GetComponent<PieceToPromoteWithButton>().pieceColor = Piece.PieceColor.Black;
+        }
+
+        // Show the popup
+        pawnPromotionPopup.SetActive(true);
+
+        // Hide the "Pieces" layer from the main camera
+        mainCamera.cullingMask &= ~(1 << piecesLayer);
+    }
+
+    public void HidePawnPromotionPopup()
+    {
+        Debug.Log("Selected a Piece to promote!");
+        // Show the "Pieces" layer again in the main camera
+        mainCamera.cullingMask |= 1 << piecesLayer;
+        pawnPromotionPopup.SetActive(false);
     }
 
     public void RestartGame()

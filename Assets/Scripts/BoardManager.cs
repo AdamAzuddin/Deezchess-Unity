@@ -197,7 +197,51 @@ public class BoardManager : MonoBehaviour
         PlacePiece(prefab, squareIndex, color, type, whitePiecesIsDraggable, blackPiecesIsDraggable);
     }
 
-    GameObject GetPrefab(Piece.PieceType type, Piece.PieceColor color)
+    public void UpdateFenAfterPromotion(int promotionSquareIndex, Piece.PieceColor color, Piece.PieceType type)
+    {
+        List<char> piecesList = GetCurrentPiecesFromFen();
+
+        // Convert square index to piecesList index
+        int promotionIndex = SquareIndexToPieceListIndex(promotionSquareIndex);
+
+        // Determine promoted piece character
+        char promotedPiece = type switch
+        {
+            Piece.PieceType.Queen => 'q',
+            Piece.PieceType.Rook => 'r',
+            Piece.PieceType.Bishop => 'b',
+            Piece.PieceType.Knight => 'n',
+            _ => 'q' // Default to queen
+        };
+
+        // Keep capitalization for color
+        if (color == Piece.PieceColor.White)
+            promotedPiece = char.ToUpper(promotedPiece);
+
+        // Replace the pawn with the promoted piece
+        piecesList[promotionIndex] = promotedPiece;
+
+        // Preserve all FEN parts
+        string[] fenParts = currentFen.Split(' ');
+
+        // Maintain the correct turn (preserve instead of switching)
+        string currentTurn = fenParts[1];
+
+        // Convert back to FEN while keeping the correct turn
+        currentFen = ConvertPiecesListToFen(piecesList, "-", false);
+
+        // Restore the correct turn in the updated FEN
+        string[] updatedFenParts = currentFen.Split(' ');
+        updatedFenParts[1] = currentTurn;
+
+        gameManager.isWhiteToMove = (currentTurn == "w") ? true : false; 
+
+        // Join the parts back into a full FEN string
+        currentFen = string.Join(" ", updatedFenParts);
+    }
+
+
+    public GameObject GetPrefab(Piece.PieceType type, Piece.PieceColor color)
     {
         switch (type)
         {
@@ -214,7 +258,7 @@ public class BoardManager : MonoBehaviour
 
 
     // Method to place an individual piece on a specific square based on the single index
-    void PlacePiece(GameObject piecePrefab, int squareIndex, Piece.PieceColor color, Piece.PieceType pieceType, bool whitePiecesIsDraggable, bool blackPiecesIsDraggable)
+    public void PlacePiece(GameObject piecePrefab, int squareIndex, Piece.PieceColor color, Piece.PieceType pieceType, bool whitePiecesIsDraggable, bool blackPiecesIsDraggable)
     {
         if (squareIndex < 0 || squareIndex >= 64)
         {
@@ -317,12 +361,12 @@ public class BoardManager : MonoBehaviour
     }
 
 
-    public List<int> GetLegalMovesFromIndex(int currentIndex)
+    public List<int> GetLegalMovesFromIndex(int currentIndex, string fen)
     {
         List<int> legalMovesTo = new List<int>();
 
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-        IntPtr movesPtr = getLegalMoves(currentFen, out int moveCount);
+        IntPtr movesPtr = getLegalMoves(fen, out int moveCount);
 
         // Convert the pointer to an array of MoveIndices structs
         MoveIndices[] moves = new MoveIndices[moveCount];
@@ -333,6 +377,8 @@ public class BoardManager : MonoBehaviour
         }
 
         // Filter moves where move.from equals currentIndex
+
+        Debug.Log("There are " + moves.Length + " legal moves for fen string " + fen);
         foreach (var move in moves)
         {
             if (move.from == currentIndex)
@@ -343,7 +389,6 @@ public class BoardManager : MonoBehaviour
 #else
         Debug.Log("DLL not supported on this platform.");
 #endif
-
         return legalMovesTo;
     }
 
@@ -621,7 +666,8 @@ public class BoardManager : MonoBehaviour
     {
         // find the best move using stockfish
         var bestMove = UciMoveToBitboardIndices(engine.GetBestMove(fen, depth));
-        if(bestMove.Item1==-1){
+        if (bestMove.Item1 == -1)
+        {
             gameManager.ShowGameOver("Stockfish gave invalid Move");
         }
 
@@ -750,6 +796,9 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-
+    public Piece.PieceType SelectPromotionPiece()
+    {
+        return Piece.PieceType.Queen;
+    }
 
 }

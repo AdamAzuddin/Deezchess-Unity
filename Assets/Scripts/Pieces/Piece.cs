@@ -73,13 +73,17 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 if (result.gameObject.CompareTag("Square"))
                 {
                     Square square = result.gameObject.GetComponent<Square>();
+
                     if (square != null && square.occupiedPiece == this && (square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
                     {
                         originalSquare = square;
-                        List<int> possibleLegalMoveIndices = boardManager.GetLegalMovesFromIndex(square.index);
+                        List<int> possibleLegalMoveIndices = boardManager.GetLegalMovesFromIndex(square.index, boardManager.currentFen);
 
+                        Debug.Log("Current piece index: " + originalSquare.index);
+                        Debug.Log("Possible legal moves indices:\n");
                         foreach (int index in possibleLegalMoveIndices)
                         {
+                            Debug.Log(index);
                             Square squareToHighlight = boardManager.FindSquareByIndex(index);
                             if (squareToHighlight != null)
                             {
@@ -91,11 +95,38 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     }
                     else
                     {
+                        if (square == null)
+                        {
+                            Debug.Log("Square is null");
+                        }
+                        if (square.occupiedPiece != this)
+                        {
+                            Debug.Log("Mismatch between occupied piece and this piece");
+                        }
+                        if (square.occupiedPiece.pieceColor != PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor != PieceColor.Black && !boardManager.gameManager.isWhiteToMove)
+                        {
+
+                            Debug.Log("This colour is not suppose to move now");
+                            if (boardManager.gameManager.isWhiteToMove)
+                            {
+                                Debug.Log("White to move!");
+                            }
+                            else
+                            {
+                                Debug.Log("Black to move");
+                            }
+                        }
+                        Debug.Log("Occupied piece type: " + square.occupiedPiece.pieceType);
+                        Debug.Log("Occupied piece color: " + square.occupiedPiece.pieceColor);
                         canDrag = false;
                     }
                     break;
                 }
             }
+        }
+        else
+        {
+            Debug.Log("This piece is not draggable");
         }
     }
     public virtual void OnBeginDrag(PointerEventData eventData)
@@ -265,7 +296,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     boardManager.AddFen(boardManager.fenOccurences, fenParts[0] + fenParts[2]);
                 }
 
-                
+
                 if (halfMoveCount == 50)
                 {
                     boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
@@ -297,7 +328,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     {
                         boardManager.gameManager.ShowGameOver("You Lose!");
                     }
-                    // reset half move if its a capture 
                 }
 
             }
@@ -321,6 +351,6 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
         return (currentY * 8) + currentX;
     }
 
-    
-    
+
+
 }
