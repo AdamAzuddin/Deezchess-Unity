@@ -55,6 +55,16 @@ public class Pawn : Piece
             transform.position = originalSquare.transform.position;
         }
 
+        if (pieceColor == PieceColor.White && (originalSquare.index - 1) / 8 == 6)
+        {
+            boardManager.gameManager.pawnPromotionSquareIndex = targetSquare.index;
+            boardManager.gameManager.ShowPawnPromotionPopup(PieceColor.White);
+        }
+        else if (pieceColor == PieceColor.Black && (originalSquare.index - 1) / 8 == 1)
+        {
+            boardManager.gameManager.pawnPromotionSquareIndex = targetSquare.index;
+            boardManager.gameManager.ShowPawnPromotionPopup(PieceColor.Black);
+        }
     }
 
     public override void OnBeginDrag(PointerEventData eventData)
