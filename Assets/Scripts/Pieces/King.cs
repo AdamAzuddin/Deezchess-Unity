@@ -19,11 +19,13 @@ public class King : Piece
 
     public override void OnEndDrag(PointerEventData eventData)
     {
+        string castlingRights;
         base.OnEndDrag(eventData);
-        if (canDrag)
+        if (canDrag && hasMoved)
         {
+            // Check for castling move
             string[] fenParts = boardManager.currentFen.Split(' ');
-            string castlingRights = fenParts[2];
+            castlingRights = fenParts[2];
             int distanceBetweenTargetAndOriginalIndex = targetSquare.index - originalSquare.index;
             int rookOriginalIndex = 0;
             int rookCastledIndex = 0;
@@ -101,6 +103,34 @@ public class King : Piece
             {
                 boardManager.EngineMove(boardManager.currentFen, boardManager.searchDepth, halfMoveCount, fullMoveCount);
             }
+        }
+
+        if (hasMoved)
+        {
+            // Remove castling rights if any
+            string[] fenSplits = boardManager.currentFen.Split();
+            castlingRights = fenSplits[2];
+            if (pieceColor == PieceColor.White)
+            {
+                if (castlingRights.Contains('K') || castlingRights.Contains('Q'))
+                {
+                    castlingRights = castlingRights.Replace("K", "").Replace("Q", "");
+                }
+            }
+            else
+            {
+                if (castlingRights.Contains('k') || castlingRights.Contains('q'))
+                {
+                    castlingRights = castlingRights.Replace("k", "").Replace("q", "");
+                }
+            }
+
+            if (castlingRights == "")
+            {
+                castlingRights = "-";
+            }
+
+            boardManager.currentFen = fenSplits[0] + " " + fenSplits[1] + " " + castlingRights + " " + fenSplits[3] + " " + fenSplits[4] + " " + fenSplits[5];
         }
     }
 
