@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System;
 using System.Text;
 using System.Linq;
@@ -23,7 +24,7 @@ public class BoardManager : MonoBehaviour
     public GameObject blackQueenPrefab;
     public GameObject blackKingPrefab;
 
-    private Square[] squares = new Square[64];
+    public Square[] squares = new Square[64];
 
 
     public List<Square> highlightedSquares = new List<Square>();
@@ -36,11 +37,18 @@ public class BoardManager : MonoBehaviour
 
     public int numOfMovesWithoutCaptureOrCheck = 0;
     public int enPassantSquareIndex;
+    public readonly int searchDepth = 10;
     public string currentFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+    public bool isWhitePlayedByHuman = true;
+    public bool isBlackPlayedByHuman = true;
 
     public Dictionary<string, int> fenOccurences = new Dictionary<string, int>(50);
 
-    
+
+    public readonly StockfishEngine engine = new StockfishEngine();
+
+
     [StructLayout(LayoutKind.Sequential)]
     public struct MoveIndices
     {
@@ -77,7 +85,6 @@ public class BoardManager : MonoBehaviour
     void Start()
     {
         InitializeBoard();
-        PlacePieces();
         gameManager = FindObjectOfType<GameManager>();
         if (gameManager == null)
         {
@@ -119,20 +126,6 @@ public class BoardManager : MonoBehaviour
         }
     }
 
-    public int UciSquareToBitboardIndex(string square)
-    {
-        if (square.Length != 2)
-            return -1;
-
-        char file = square[0];
-        char rank = square[1];
-
-        int fileIndex = file - 'a';
-        int rankIndex = rank - '1';
-
-        return rankIndex * 8 + fileIndex;
-    }
-
     string BitboardIndexToUci(int index)
     {
         if (index < 0 || index > 63)
@@ -148,8 +141,10 @@ public class BoardManager : MonoBehaviour
     }
 
 
-    void PlacePieces()
+    public void PlacePieces(bool whitePiecesIsDraggable = true, bool blackPiecesIsDraggable = true)
     {
+        isWhitePlayedByHuman = whitePiecesIsDraggable;
+        isBlackPlayedByHuman = blackPiecesIsDraggable;
         string[] fenParts = currentFen.Split(' ');
         string piecePlacement = fenParts[0];
         gameManager.isWhiteToMove = fenParts[1] == "w";
@@ -177,12 +172,12 @@ public class BoardManager : MonoBehaviour
             }
             else // Piece
             {
-                PlacePieceFromFen(c, squareIndex);
+                PlacePieceFromFen(c, squareIndex, whitePiecesIsDraggable, blackPiecesIsDraggable);
                 squareIndex++;
             }
         }
     }
-    void PlacePieceFromFen(char fenChar, int squareIndex)
+    void PlacePieceFromFen(char fenChar, int squareIndex, bool whitePiecesIsDraggable, bool blackPiecesIsDraggable)
     {
         Piece.PieceColor color = char.IsUpper(fenChar) ? Piece.PieceColor.White : Piece.PieceColor.Black;
         Piece.PieceType type;
@@ -199,10 +194,54 @@ public class BoardManager : MonoBehaviour
         }
 
         GameObject prefab = GetPrefab(type, color);
-        PlacePiece(prefab, squareIndex, color, type);
+        PlacePiece(prefab, squareIndex, color, type, whitePiecesIsDraggable, blackPiecesIsDraggable);
     }
 
-    GameObject GetPrefab(Piece.PieceType type, Piece.PieceColor color)
+    public void UpdateFenAfterPromotion(int promotionSquareIndex, Piece.PieceColor color, Piece.PieceType type)
+    {
+        List<char> piecesList = GetCurrentPiecesFromFen();
+
+        // Convert square index to piecesList index
+        int promotionIndex = SquareIndexToPieceListIndex(promotionSquareIndex);
+
+        // Determine promoted piece character
+        char promotedPiece = type switch
+        {
+            Piece.PieceType.Queen => 'q',
+            Piece.PieceType.Rook => 'r',
+            Piece.PieceType.Bishop => 'b',
+            Piece.PieceType.Knight => 'n',
+            _ => 'q' // Default to queen
+        };
+
+        // Keep capitalization for color
+        if (color == Piece.PieceColor.White)
+            promotedPiece = char.ToUpper(promotedPiece);
+
+        // Replace the pawn with the promoted piece
+        piecesList[promotionIndex] = promotedPiece;
+
+        // Preserve all FEN parts
+        string[] fenParts = currentFen.Split(' ');
+
+        // Maintain the correct turn (preserve instead of switching)
+        string currentTurn = fenParts[1];
+
+        // Convert back to FEN while keeping the correct turn
+        currentFen = ConvertPiecesListToFen(piecesList, "-", false);
+
+        // Restore the correct turn in the updated FEN
+        string[] updatedFenParts = currentFen.Split(' ');
+        updatedFenParts[1] = currentTurn;
+
+        gameManager.isWhiteToMove = (currentTurn == "w") ? true : false;
+
+        // Join the parts back into a full FEN string
+        currentFen = string.Join(" ", updatedFenParts);
+    }
+
+
+    public GameObject GetPrefab(Piece.PieceType type, Piece.PieceColor color)
     {
         switch (type)
         {
@@ -219,7 +258,7 @@ public class BoardManager : MonoBehaviour
 
 
     // Method to place an individual piece on a specific square based on the single index
-    void PlacePiece(GameObject piecePrefab, int squareIndex, Piece.PieceColor color, Piece.PieceType pieceType)
+    public void PlacePiece(GameObject piecePrefab, int squareIndex, Piece.PieceColor color, Piece.PieceType pieceType, bool whitePiecesIsDraggable, bool blackPiecesIsDraggable)
     {
         if (squareIndex < 0 || squareIndex >= 64)
         {
@@ -255,6 +294,8 @@ public class BoardManager : MonoBehaviour
             pieceComponent.currentX = squareIndex % 8;
             pieceComponent.currentY = squareIndex / 8;
             pieceComponent.pieceType = pieceType;
+            pieceComponent.isDraggable = (color == Piece.PieceColor.White) ? whitePiecesIsDraggable : blackPiecesIsDraggable;
+
             targetSquare.occupiedPiece = pieceComponent;
 
         }
@@ -286,11 +327,6 @@ public class BoardManager : MonoBehaviour
         pieceToMoveSquare = null;
         pieceToMove = null;
         isSelectPieceToMove = false;
-    }
-
-    public void movePieceTo(GameObject pieceGameObj, int moveToIndex)
-    {
-        PlacePiece(pieceGameObj, moveToIndex, pieceToMove.pieceColor, pieceToMove.pieceType);
     }
     public List<char> GetPiecesForBitboard(string fen)
     {
@@ -325,12 +361,12 @@ public class BoardManager : MonoBehaviour
     }
 
 
-    public List<int> GetLegalMovesFromIndex(int currentIndex)
+    public List<int> GetLegalMovesFromIndex(int currentIndex, string fen)
     {
         List<int> legalMovesTo = new List<int>();
 
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-        IntPtr movesPtr = getLegalMoves(currentFen, out int moveCount);
+        IntPtr movesPtr = getLegalMoves(fen, out int moveCount);
 
         // Convert the pointer to an array of MoveIndices structs
         MoveIndices[] moves = new MoveIndices[moveCount];
@@ -341,18 +377,18 @@ public class BoardManager : MonoBehaviour
         }
 
         // Filter moves where move.from equals currentIndex
+
+        Debug.Log("There are " + moves.Length + " legal moves for fen string " + fen);
         foreach (var move in moves)
         {
             if (move.from == currentIndex)
             {
                 legalMovesTo.Add(move.to);
-                Debug.Log("From square index: " + move.from + " To square index: " + move.to);
             }
         }
 #else
         Debug.Log("DLL not supported on this platform.");
 #endif
-
         return legalMovesTo;
     }
 
@@ -363,9 +399,6 @@ public class BoardManager : MonoBehaviour
 #if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
         // Call the getLegalMoves function from the DLL
         IntPtr movesPtr = getLegalMoves(fen, out moveCount);
-
-        // Optional: Log the moves for debugging
-        Debug.Log("Total legal moves for FEN: " + fen + " is: " + moveCount);
 #else
     Debug.Log("DLL not supported on this platform.");
 #endif
@@ -418,6 +451,110 @@ public class BoardManager : MonoBehaviour
 
         return pieceListIndex;
     }
+    public string RemovePieceFromFen(string fen, int indexToRemove)
+    {
+        string[] parts = fen.Split(' ');
+        string boardPart = parts[0];
+
+        // Convert FEN to 64-char board representation
+        List<char> boardList = new List<char>();
+
+        foreach (char c in boardPart)
+        {
+            if (char.IsDigit(c))
+            {
+                int emptySquares = c - '0';
+                for (int i = 0; i < emptySquares; i++)
+                    boardList.Add('1'); // Use '1' to represent empty for internal processing
+            }
+            else if (c == '/')
+            {
+                // Marker to track new rank
+                boardList.Add('/');
+            }
+            else
+            {
+                boardList.Add(c); // Piece character
+            }
+        }
+
+        // Map bitboard index to correct index in boardList
+        int rank = 7 - (indexToRemove / 8); // FEN starts from rank 8
+        int file = indexToRemove % 8;
+
+        int currentRank = 0, currentFile = 0;
+
+        for (int i = 0; i < boardList.Count; i++)
+        {
+            if (boardList[i] == '/')
+            {
+                currentRank++;
+                currentFile = 0;
+                continue;
+            }
+
+            if (currentRank == rank && currentFile == file)
+            {
+                boardList[i] = '1'; // remove the piece
+                break;
+            }
+
+            currentFile++;
+        }
+
+        // Rebuild FEN piece placement from boardList
+        List<string> finalRanks = new List<string>();
+        List<char> currentRankList = new List<char>();
+
+        foreach (char c in boardList)
+        {
+            if (c == '/')
+            {
+                finalRanks.Add(CompressRank(currentRankList));
+                currentRankList.Clear();
+            }
+            else
+            {
+                currentRankList.Add(c);
+            }
+        }
+
+        finalRanks.Add(CompressRank(currentRankList)); // last rank
+
+        string newBoardPart = string.Join("/", finalRanks);
+
+        // Return new FEN with updated piece placement + original other info
+        return newBoardPart + " " + string.Join(" ", parts.Skip(1));
+    }
+
+    private static string CompressRank(List<char> rank)
+    {
+        string result = "";
+        int emptyCount = 0;
+
+        foreach (char c in rank)
+        {
+            if (c == '1')
+            {
+                emptyCount++;
+            }
+            else
+            {
+                if (emptyCount > 0)
+                {
+                    result += emptyCount.ToString();
+                    emptyCount = 0;
+                }
+                result += c;
+            }
+        }
+
+        if (emptyCount > 0)
+            result += emptyCount.ToString();
+
+        return result;
+    }
+
 
     public void UpdateFenAfterMove(int originalSquareIndex, int targetSquareIndex, bool isCastlingMove)
     {
@@ -443,7 +580,7 @@ public class BoardManager : MonoBehaviour
         // Place the moving piece at the target index
         piecesList[targetIndex] = movingPiece;
 
-        Debug.Log("Current pieces on the board after moving a piece: [" + string.Join(", ", piecesList.Select(c => $"'{c}'")) + "]");
+        //Debug.Log("Current pieces on the board after moving a piece: [" + string.Join(", ", piecesList.Select(c => $"'{c}'")) + "]");
 
         // Convert the pieces list back to a FEN string
 
@@ -558,6 +695,249 @@ public class BoardManager : MonoBehaviour
                 fenOccurrences[fen] = 1;
             }
         }
+    }
+
+    public (int, int) UciMoveToBitboardIndices(string uciMove)
+    {
+
+        // (0,0) = short castle white
+        // (1,1) = long castle white
+        // (2,2) = short castle black
+        // (3,3) = long castle black
+
+        if (uciMove.Length != 4)
+            return (-1, -1);
+
+        string fromSquare = uciMove.Substring(0, 2);
+        string toSquare = uciMove.Substring(2, 2);
+        string castlingRights = currentFen.Split(" ")[2];
+
+        int fromIndex = UciSquareToBitboardIndex(fromSquare);
+        int toIndex = UciSquareToBitboardIndex(toSquare);
+
+        // Castling logic
+
+        Square whiteKingSquare = FindSquareByIndex(4);
+        Square blackKingSquare = FindSquareByIndex(60);
+
+        if (whiteKingSquare.occupiedPiece != null && whiteKingSquare.occupiedPiece.pieceType == Piece.PieceType.King && whiteKingSquare.occupiedPiece.pieceColor == Piece.PieceColor.White && gameManager.isWhiteToMove)
+        {
+            if (uciMove == "e1g1" && castlingRights.Contains("K"))
+            {
+                return (0, 0);
+            }
+            else if (uciMove == "e1c1" && castlingRights.Contains("Q"))
+            {
+                return (1, 1);
+            }
+        }
+        else if (blackKingSquare.occupiedPiece != null && blackKingSquare.occupiedPiece.pieceType == Piece.PieceType.King && blackKingSquare.occupiedPiece.pieceColor == Piece.PieceColor.Black && !gameManager.isWhiteToMove)
+        {
+            if (uciMove == "e8g8" && castlingRights.Contains("k"))
+            {
+                return (2, 2);
+            }
+            else if (uciMove == "e8c8" && castlingRights.Contains("q"))
+            {
+                return (3, 3);
+            }
+        }
+
+        return (fromIndex, toIndex);
+    }
+
+    public int UciSquareToBitboardIndex(string square)
+    {
+        // Example logic: Convert "e2" to bitboard index
+        if (square.Length != 2)
+            return -1;
+
+        char file = square[0]; // 'a' to 'h'
+        char rank = square[1]; // '1' to '8'
+
+        if (file < 'a' || file > 'h' || rank < '1' || rank > '8')
+            return -1;
+
+        return (rank - '1') * 8 + (file - 'a'); // Convert to 0-63 index
+    }
+
+    public Square FindSquareByIndex(int targetIndex)
+    {
+        return gameManager.GetSquareByIndex(targetIndex);
+    }
+
+    public void EngineMove(string fen, int depth, int halfMoveCount, int fullMoveCount)
+    {
+        // find the best move using stockfish
+        string bestMoveUci = engine.GetBestMove(fen, depth);
+        bool isPromotionMove = false;
+        char pieceToPromoteWith = ' ';
+        // check if its a promotion!
+        if (bestMoveUci.Length == 5)
+        {
+            isPromotionMove = true;
+            pieceToPromoteWith = bestMoveUci[^1]; // Get the last character as string
+            bestMoveUci = bestMoveUci.Remove(bestMoveUci.Length - 1);
+        }
+        Debug.Log("BestMoveUCI length: " + bestMoveUci.Length);
+        var bestMove = UciMoveToBitboardIndices(bestMoveUci);
+        if (bestMove.Item1 == -1)
+        {
+            gameManager.ShowGameOver("Stockfish gave invalid Move");
+        }
+
+        bool isCastling = false;
+        if (bestMove.Item2 == bestMove.Item1 && bestMove.Item1 != -1)
+        {
+            isCastling = true;
+        }
+        if (!isCastling)
+        {
+            Debug.Log($"Stockfish move from: {bestMove.Item1}, To: {bestMove.Item2}");
+            Square initialSquare = FindSquareByIndex(bestMove.Item1);
+            Square targetSquare = FindSquareByIndex(bestMove.Item2);
+
+            // actually move the piece
+            Piece pieceToMove = initialSquare.occupiedPiece;
+            if (targetSquare.occupiedPiece != null)
+            {
+                Destroy(targetSquare.occupiedPiece.gameObject);
+            }
+            pieceToMove.transform.position = targetSquare.transform.position;
+            pieceToMove.currentX = targetSquare.index % 8;
+            pieceToMove.currentY = targetSquare.index / 8;
+            if (pieceToMove.pieceType == Piece.PieceType.Pawn || targetSquare.occupiedPiece != null)
+            {
+                halfMoveCount = 0;
+            }
+            else
+            {
+                halfMoveCount++;
+            }
+            if (pieceToMove.pieceColor == Piece.PieceColor.Black)
+            {
+                fullMoveCount++;
+            }
+            targetSquare.occupiedPiece = pieceToMove;
+            initialSquare.occupiedPiece = null;
+            bool isCastlingMove = false;
+            if (initialSquare.index == targetSquare.index && initialSquare.index != -1)
+                isCastlingMove = true;
+
+            MovePiece(initialSquare.index, targetSquare.index, isCastlingMove); // move in fen
+            string[] fenParts = currentFen.Split(' ');
+            currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+
+            if (isPromotionMove)
+            {
+                if (targetSquare.occupiedPiece != null)
+                {
+                    // change occupied piece from pawn to the selected piece
+                    Destroy(targetSquare.occupiedPiece.gameObject);
+                    targetSquare.occupiedPiece = null;
+                    Debug.Log("Stockfish want to promote to " + pieceToPromoteWith);
+                    Debug.Log("Current color to move: " + currentFen.Split()[1]);
+                    Piece.PieceColor pieceToPromoteWithColor = (currentFen.Split()[1] == "b") ? Piece.PieceColor.White : Piece.PieceColor.Black;
+                    Piece.PieceType pieceToPromoteWithType = char.ToLower(pieceToPromoteWith) switch // Convert to lowercase to handle case-insensitivity
+                    {
+                        'q' => Piece.PieceType.Queen,
+                        'r' => Piece.PieceType.Rook,
+                        'b' => Piece.PieceType.Bishop,
+                        'n' => Piece.PieceType.Knight,
+                        _ => Piece.PieceType.Queen,// Default to Queen if input is invalid
+                    };
+                    GameObject promotionPiecePrefab = GetPrefab(pieceToPromoteWithType, pieceToPromoteWithColor);
+                    PlacePiece(promotionPiecePrefab, targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType, isWhitePlayedByHuman, isBlackPlayedByHuman);
+                    UpdateFenAfterPromotion(targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType);
+                }
+            }
+        }
+
+        // castling move
+        else
+        {
+            int kingTargetSquareIndex = 0;
+            int rookTargetSquareIndex = 0;
+            int originalRookIndex = 0;
+
+            bool isWhiteCastling = true;
+
+            Piece whiteKing = FindSquareByIndex(4).occupiedPiece;
+            Piece blackKing = FindSquareByIndex(60).occupiedPiece;
+            switch (bestMove.Item1)
+            {
+                case 0:
+                    kingTargetSquareIndex = 6;
+                    rookTargetSquareIndex = 5;
+                    originalRookIndex = 7;
+                    break;
+                case 1:
+                    kingTargetSquareIndex = 2;
+                    rookTargetSquareIndex = 3;
+                    originalRookIndex = 0;
+                    break;
+                case 2:
+                    kingTargetSquareIndex = 62;
+                    rookTargetSquareIndex = 61;
+                    originalRookIndex = 63;
+                    isWhiteCastling = false;
+                    break;
+                case 3:
+                    kingTargetSquareIndex = 58;
+                    rookTargetSquareIndex = 59;
+                    originalRookIndex = 56;
+                    isWhiteCastling = false;
+                    break;
+            }
+            string[] fenParts = currentFen.Split(' ');
+            string castlingRights = fenParts[2];
+            if (isWhiteCastling)
+            {
+                whiteKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
+                FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = whiteKing;
+                FindSquareByIndex(4).occupiedPiece = null;
+                MovePiece(4, kingTargetSquareIndex, true);
+                castlingRights = castlingRights.Replace("K", "").Replace("Q", "");
+            }
+            else
+            {
+                blackKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
+                FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = blackKing;
+                FindSquareByIndex(60).occupiedPiece = null;
+                MovePiece(60, kingTargetSquareIndex, true);
+                castlingRights = castlingRights.Replace("q", "").Replace("q", "");
+            }
+            if (castlingRights == "")
+            {
+                castlingRights = "-";
+            }
+            FindSquareByIndex(originalRookIndex).occupiedPiece.transform.position = FindSquareByIndex(rookTargetSquareIndex).transform.position;
+            MovePiece(originalRookIndex, rookTargetSquareIndex, true);
+            FindSquareByIndex(rookTargetSquareIndex).occupiedPiece = FindSquareByIndex(originalRookIndex).occupiedPiece;
+            FindSquareByIndex(originalRookIndex).occupiedPiece = null;
+
+            fenParts[0] = currentFen.Split(' ')[0];
+            string sideToMove = fenParts[1];
+
+            if (sideToMove == "w")
+            {
+                sideToMove = "b";
+            }
+            else
+            {
+                sideToMove = "w";
+            }
+
+
+            gameManager.isWhiteToMove = !gameManager.isWhiteToMove;
+            currentFen = fenParts[0] + " " + sideToMove + " " + castlingRights + " " + fenParts[3] + " " + fenParts[4] + " " + fenParts[5];
+            Debug.Log("Stockfish castled! Current fen: " + currentFen);
+        }
+    }
+
+    public Piece.PieceType SelectPromotionPiece()
+    {
+        return Piece.PieceType.Queen;
     }
 
 }
