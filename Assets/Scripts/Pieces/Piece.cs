@@ -186,23 +186,21 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
 
                         if (dropOnSquare != null && dropOnSquare.color != dropOnSquare.spriteRenderer.color)
                         {
-                            if (dropOnSquare.occupiedPiece != null && (dropOnSquare.color == Color.red || dropOnSquare.spriteRenderer.color == Color.red))
+                            if (dropOnSquare.occupiedPiece != null && (dropOnSquare.color == Color.red || dropOnSquare.spriteRenderer.color == Color.red) && dropOnSquare.occupiedPiece != this)
                             {
                                 Destroy(dropOnSquare.occupiedPiece.gameObject);
                             }
                             transform.position = dropOnSquare.transform.position;
                             currentX = dropOnSquare.index % 8;
                             currentY = dropOnSquare.index / 8;
-
                             dropOnSquare.occupiedPiece = this;
+                            dropOnSquare.OnDrop(eventData);
+                            targetSquare = dropOnSquare;
+                            boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
                             if (originalSquare != null)
                             {
                                 originalSquare.occupiedPiece = null;
                             }
-
-                            dropOnSquare.OnDrop(eventData);
-                            targetSquare = dropOnSquare;
-                            boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
                             if (pieceColor == PieceColor.Black)
                             {
                                 fullMoveCount++;
@@ -221,7 +219,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     else if (result.gameObject.CompareTag("Piece") && result.gameObject != gameObject)
                     {
                         Piece otherPiece = result.gameObject.GetComponent<Piece>();
-                        if (otherPiece != null && ((boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.White) || (!boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.Black)))
+                        if (otherPiece != null && otherPiece != this && ((boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.White) || (!boardManager.gameManager.isWhiteToMove && otherPiece.pieceColor != PieceColor.Black)))
                         {
                             int idx = GetSquareIndex(otherPiece.currentX, otherPiece.currentY);
                             Square otherPieceSquare = boardManager.FindSquareByIndex(idx);
@@ -249,13 +247,14 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                                         currentX = square.index % 8;
                                         currentY = square.index / 8;
                                         square.occupiedPiece = this;
+
+                                        square.OnDrop(eventData);
+                                        targetSquare = square;
+                                        boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
                                         if (originalSquare != null)
                                         {
                                             originalSquare.occupiedPiece = null;
                                         }
-                                        square.OnDrop(eventData);
-                                        targetSquare = square;
-                                        boardManager.MovePiece(originalSquare.index, targetSquare.index, false);
                                         if (pieceColor == PieceColor.Black)
                                         {
                                             fullMoveCount++;
