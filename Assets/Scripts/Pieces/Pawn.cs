@@ -33,28 +33,31 @@ public class Pawn : Piece
         if (hasMoved)
         {
             PieceColor enemyColor = pieceColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
-            string[] fenParts = boardManager.currentFen.Split(' ');
+            Debug.Log("Fen inside pawn onEndDrag: "+boardManager.currentFen);
             int direction = pieceColor == PieceColor.White ? -8 : 8;
             Square enPassantCapturedSquare = boardManager.gameManager.GetSquareByIndex(targetSquare.index + direction);
 
             // Capture en passant if the square contains an enemy pawn
             if (enPassantCapturedSquare.occupiedPiece != null &&
                 enPassantCapturedSquare.occupiedPiece.pieceType == PieceType.Pawn &&
-                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor && fenParts[3] != "-")
+                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor)
             {
                 Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
                 Debug.Log("Captured en passantly");
                 enPassantCapturedSquare.occupiedPiece = null;
             }
 
-            boardManager.currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " 0 " + fenParts[5];
-            Debug.Log("Fen string after resetted half move: " + boardManager.currentFen);
+            // remove the destroyed pawn from the fen
+
+            boardManager.currentFen = boardManager.RemovePieceFromFen(boardManager.currentFen, enPassantCapturedSquare.index);
+            Debug.Log("Fen string after en passant move: " + boardManager.currentFen);
         }
         else
         {
             transform.position = originalSquare.transform.position;
         }
 
+        // Promotion logic
         if (pieceColor == PieceColor.White && (originalSquare.index - 1) / 8 == 6)
         {
             boardManager.gameManager.pawnPromotionSquareIndex = targetSquare.index;

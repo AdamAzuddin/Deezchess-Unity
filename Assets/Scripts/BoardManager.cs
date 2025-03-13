@@ -451,6 +451,110 @@ public class BoardManager : MonoBehaviour
 
         return pieceListIndex;
     }
+    public string RemovePieceFromFen(string fen, int indexToRemove)
+    {
+        string[] parts = fen.Split(' ');
+        string boardPart = parts[0];
+
+        // Convert FEN to 64-char board representation
+        List<char> boardList = new List<char>();
+
+        foreach (char c in boardPart)
+        {
+            if (char.IsDigit(c))
+            {
+                int emptySquares = c - '0';
+                for (int i = 0; i < emptySquares; i++)
+                    boardList.Add('1'); // Use '1' to represent empty for internal processing
+            }
+            else if (c == '/')
+            {
+                // Marker to track new rank
+                boardList.Add('/');
+            }
+            else
+            {
+                boardList.Add(c); // Piece character
+            }
+        }
+
+        // Map bitboard index to correct index in boardList
+        int rank = 7 - (indexToRemove / 8); // FEN starts from rank 8
+        int file = indexToRemove % 8;
+
+        int currentRank = 0, currentFile = 0;
+
+        for (int i = 0; i < boardList.Count; i++)
+        {
+            if (boardList[i] == '/')
+            {
+                currentRank++;
+                currentFile = 0;
+                continue;
+            }
+
+            if (currentRank == rank && currentFile == file)
+            {
+                boardList[i] = '1'; // remove the piece
+                break;
+            }
+
+            currentFile++;
+        }
+
+        // Rebuild FEN piece placement from boardList
+        List<string> finalRanks = new List<string>();
+        List<char> currentRankList = new List<char>();
+
+        foreach (char c in boardList)
+        {
+            if (c == '/')
+            {
+                finalRanks.Add(CompressRank(currentRankList));
+                currentRankList.Clear();
+            }
+            else
+            {
+                currentRankList.Add(c);
+            }
+        }
+
+        finalRanks.Add(CompressRank(currentRankList)); // last rank
+
+        string newBoardPart = string.Join("/", finalRanks);
+
+        // Return new FEN with updated piece placement + original other info
+        return newBoardPart + " " + string.Join(" ", parts.Skip(1));
+    }
+
+    private static string CompressRank(List<char> rank)
+    {
+        string result = "";
+        int emptyCount = 0;
+
+        foreach (char c in rank)
+        {
+            if (c == '1')
+            {
+                emptyCount++;
+            }
+            else
+            {
+                if (emptyCount > 0)
+                {
+                    result += emptyCount.ToString();
+                    emptyCount = 0;
+                }
+                result += c;
+            }
+        }
+
+        if (emptyCount > 0)
+            result += emptyCount.ToString();
+
+        return result;
+    }
+
 
     public void UpdateFenAfterMove(int originalSquareIndex, int targetSquareIndex, bool isCastlingMove)
     {
@@ -673,9 +777,9 @@ public class BoardManager : MonoBehaviour
         {
             isPromotionMove = true;
             pieceToPromoteWith = bestMoveUci[^1]; // Get the last character as string
-            bestMoveUci = bestMoveUci.Remove(bestMoveUci.Length-1);
+            bestMoveUci = bestMoveUci.Remove(bestMoveUci.Length - 1);
         }
-        Debug.Log("BestMoveUCI length: "+bestMoveUci.Length);
+        Debug.Log("BestMoveUCI length: " + bestMoveUci.Length);
         var bestMove = UciMoveToBitboardIndices(bestMoveUci);
         if (bestMove.Item1 == -1)
         {
@@ -731,9 +835,9 @@ public class BoardManager : MonoBehaviour
                     // change occupied piece from pawn to the selected piece
                     Destroy(targetSquare.occupiedPiece.gameObject);
                     targetSquare.occupiedPiece = null;
-                    Debug.Log("Stockfish want to promote to "+pieceToPromoteWith);
-                    Debug.Log("Current color to move: "+currentFen.Split()[1]);
-                    Piece.PieceColor pieceToPromoteWithColor = (currentFen.Split()[1]=="b") ? Piece.PieceColor.White : Piece.PieceColor.Black;
+                    Debug.Log("Stockfish want to promote to " + pieceToPromoteWith);
+                    Debug.Log("Current color to move: " + currentFen.Split()[1]);
+                    Piece.PieceColor pieceToPromoteWithColor = (currentFen.Split()[1] == "b") ? Piece.PieceColor.White : Piece.PieceColor.Black;
                     Piece.PieceType pieceToPromoteWithType = char.ToLower(pieceToPromoteWith) switch // Convert to lowercase to handle case-insensitivity
                     {
                         'q' => Piece.PieceType.Queen,
