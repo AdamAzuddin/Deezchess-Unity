@@ -1,8 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
-using System;
 using System.Text;
 using System.Linq;
 
@@ -16,7 +13,6 @@ public class BoardManager : MonoBehaviour
     public GameObject whiteQueenPrefab;
     public GameObject whiteKingPrefab;
 
-    // Prefabs for black pieces
     public GameObject blackPawnPrefab;
     public GameObject blackRookPrefab;
     public GameObject blackKnightPrefab;
@@ -48,17 +44,6 @@ public class BoardManager : MonoBehaviour
 
     public readonly StockfishEngine engine = new StockfishEngine();
 
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct MoveIndices
-    {
-        public int from;
-        public int to;
-    }
-
-    [DllImport("ChessLogic", CallingConvention = CallingConvention.Cdecl)]
-    private static extern IntPtr getLegalMoves(string fen, out int moveCount);
-
     public enum BoardState
     {
         SelectingPiece,
@@ -69,6 +54,9 @@ public class BoardManager : MonoBehaviour
     public BoardState currentState = BoardState.Waiting;
 
     public static BoardManager Instance;
+    public ChessAPI chessAPI;
+
+
 
     private void Awake()
     {
@@ -90,6 +78,7 @@ public class BoardManager : MonoBehaviour
         {
             Debug.LogError("BoardManager not found in the scene!");
         }
+        chessAPI = FindObjectOfType<ChessAPI>();
     }
 
     void InitializeBoard()
@@ -359,54 +348,10 @@ public class BoardManager : MonoBehaviour
 
         return pieces;
     }
-
-
-    public List<int> GetLegalMovesFromIndex(int currentIndex, string fen)
+    public void GetNumberOfLegalMoves(string fen, System.Action<int> onResult)
     {
-        List<int> legalMovesTo = new List<int>();
-
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-        IntPtr movesPtr = getLegalMoves(fen, out int moveCount);
-
-        // Convert the pointer to an array of MoveIndices structs
-        MoveIndices[] moves = new MoveIndices[moveCount];
-        for (int i = 0; i < moveCount; i++)
-        {
-            IntPtr movePtr = IntPtr.Add(movesPtr, i * Marshal.SizeOf(typeof(MoveIndices)));
-            moves[i] = Marshal.PtrToStructure<MoveIndices>(movePtr);
-        }
-
-        // Filter moves where move.from equals currentIndex
-
-        Debug.Log("There are " + moves.Length + " legal moves for fen string " + fen);
-        foreach (var move in moves)
-        {
-            if (move.from == currentIndex)
-            {
-                legalMovesTo.Add(move.to);
-            }
-        }
-#else
-        Debug.Log("DLL not supported on this platform.");
-#endif
-        return legalMovesTo;
+        StartCoroutine(chessAPI.GetTotalLegalMovesCount(fen, onResult));
     }
-
-    public int GetNumberOfLegalMoves(string fen)
-    {
-        int moveCount = 0;
-
-#if UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN
-        // Call the getLegalMoves function from the DLL
-        IntPtr movesPtr = getLegalMoves(fen, out moveCount);
-#else
-    Debug.Log("DLL not supported on this platform.");
-#endif
-
-        return moveCount; // Return the total number of legal moves
-    }
-
-
     public List<char> GetCurrentPiecesFromFen()
     {
         string[] fenParts = currentFen.Split(' ');

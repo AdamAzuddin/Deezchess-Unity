@@ -2,13 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.Experimental.XR.Interaction;
 
 public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IPointerClickHandler
 {
     public enum PieceType { Pawn, Rook, Knight, Bishop, Queen, King }
     public enum PieceColor { White, Black }
-
     public PieceType pieceType;
     public PieceColor pieceColor;
     public bool isDraggable;
@@ -74,25 +72,32 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 {
                     Square square = result.gameObject.GetComponent<Square>();
 
-                    if (square != null && square.occupiedPiece == this && (square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove || square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove))
+                    if (square != null && square.occupiedPiece == this &&
+    ((square.occupiedPiece.pieceColor == PieceColor.White && boardManager.gameManager.isWhiteToMove) ||
+    (square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove)))
                     {
                         originalSquare = square;
-                        List<int> possibleLegalMoveIndices = boardManager.GetLegalMovesFromIndex(square.index, boardManager.currentFen);
 
-                        Debug.Log("Current piece index: " + originalSquare.index);
-                        Debug.Log("Possible legal moves indices:\n");
-                        foreach (int index in possibleLegalMoveIndices)
+                        Debug.Log("Sending request to the API...");
+                        StartCoroutine(boardManager.chessAPI.GetLegalMovesFromIndex(square.index, boardManager.currentFen, (possibleLegalMoveIndices) =>
                         {
-                            Debug.Log(index);
-                            Square squareToHighlight = boardManager.FindSquareByIndex(index);
-                            if (squareToHighlight != null)
-                            {
-                                boardManager.HighlightSquare(squareToHighlight);
-                            }
-                        }
+                            Debug.Log("Current piece index: " + originalSquare.index);
+                            Debug.Log("Possible legal moves indices:\n");
 
-                        canDrag = true;
+                            foreach (int index in possibleLegalMoveIndices)
+                            {
+                                Debug.Log(index);
+                                Square squareToHighlight = boardManager.FindSquareByIndex(index);
+                                if (squareToHighlight != null)
+                                {
+                                    boardManager.HighlightSquare(squareToHighlight);
+                                }
+                            }
+
+                            canDrag = true;
+                        }));
                     }
+
                     else
                     {
                         if (square == null)
@@ -301,17 +306,20 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 {
                     boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
                 }
-                if (boardManager.GetNumberOfLegalMoves(boardManager.currentFen) == 0)
+                boardManager.GetNumberOfLegalMoves(boardManager.currentFen, moveCount =>
                 {
-                    if (fenParts[1] == "w")
+                    if (moveCount == 0)
                     {
-                        boardManager.gameManager.ShowGameOver("Black win");
+                        if (fenParts[1] == "w")
+                        {
+                            boardManager.gameManager.ShowGameOver("Black win");
+                        }
+                        else if (fenParts[1] == "b")
+                        {
+                            boardManager.gameManager.ShowGameOver("White win");
+                        }
                     }
-                    else if (fenParts[1] == "b")
-                    {
-                        boardManager.gameManager.ShowGameOver("White win");
-                    }
-                }
+                });
 
                 // check if next move piece color is played by computer or human
                 if ((boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman) && pieceType != PieceType.King && Math.Abs(originalSquare.index - targetSquare.index) != 2)
@@ -324,10 +332,14 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                     {
                         boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
                     }
-                    if (boardManager.GetNumberOfLegalMoves(boardManager.currentFen) == 0)
+                    boardManager.GetNumberOfLegalMoves(boardManager.currentFen, moveCount =>
                     {
-                        boardManager.gameManager.ShowGameOver("You Lose!");
-                    }
+                        if (moveCount == 0)
+                        {
+                            boardManager.gameManager.ShowGameOver("You Lose!");
+                        }
+                    });
+
                 }
 
             }
