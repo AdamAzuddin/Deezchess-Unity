@@ -5,9 +5,13 @@ using UnityEngine.Networking;
 using System.Text;
 using Newtonsoft.Json;
 
+
+
 public class ChessAPI : MonoBehaviour
 {
     private const string apiUrl = "http://127.0.0.1:8000/legal_moves"; // Change if deployed
+
+    public GameManager gameManager;
 
     public IEnumerator GetLegalMovesFromIndex(int currentIndex, string fen, System.Action<List<int>> onResult)
     {
@@ -28,8 +32,8 @@ public class ChessAPI : MonoBehaviour
 
             if (request.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError($"Failed to get legal moves: {request.error}");
-                onResult?.Invoke(legalMovesTo); // return empty list
+                Debug.Log($"Failed to get legal moves: {request.error}");
+                gameManager.ShowNoConnectionPopup();
             }
             else
             {

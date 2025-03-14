@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -12,6 +14,7 @@ public class GameManager : MonoBehaviour
     public bool blackCanLongCastle = true;
     public GameObject gameOverPopup;
     public GameObject pawnPromotionPopup;
+    public GameObject NoConnectionPopup;
     public GameObject resultTextGameObject;
 
     public GameObject promotionRook;
@@ -32,28 +35,94 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
-        piecesLayer  = LayerMask.NameToLayer("Pieces");
-        squareDictionary = new Dictionary<int, Square>();
-        if (resultTextGameObject != null)
+        // ✅ Check if API server is connected
+        StartCoroutine(CheckServerAvailability(isConnected =>
         {
-            resultText = resultTextGameObject.GetComponent<Text>();
-        }
-
-        foreach (GameObject squareObject in allSquareObjects)
-        {
-            Square square = squareObject.GetComponent<Square>();
-            if (square != null)
+            if (!isConnected)
             {
-                squareDictionary[square.index] = square; // Use square index as the key
+                ShowNoConnectionPopup();
+                return;
             }
+
+            // ✅ Server is connected — continue initializing
+            GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
+            piecesLayer = LayerMask.NameToLayer("Pieces");
+            squareDictionary = new Dictionary<int, Square>();
+
+            if (resultTextGameObject != null)
+            {
+                resultText = resultTextGameObject.GetComponent<Text>();
+            }
+
+            foreach (GameObject squareObject in allSquareObjects)
+            {
+                Square square = squareObject.GetComponent<Square>();
+                if (square != null)
+                {
+                    squareDictionary[square.index] = square;
+                }
+            }
+
+            Debug.Log("Game initialized successfully.");
+        }));
+    }
+
+    public void ShowNoConnectionPopup()
+    {
+        Piece[] pieces = FindObjectsOfType<Piece>();
+        foreach (Piece piece in pieces)
+        {
+            Destroy(piece.gameObject);
+        }
+        Square[] squares = FindObjectsOfType<Square>();
+        foreach (Square square in squares)
+        {
+            Destroy(square.gameObject);
+        }
+        NoConnectionPopup.SetActive(true);
+    }
+
+    public void RetryConnection()
+    {
+        Debug.Log("Retrying connection...");
+        StartCoroutine(CheckServerAvailability(isConnected =>
+        {
+            if (!isConnected)
+            {
+                Debug.Log("Still no connection.");
+            }
+            else
+            {
+                Debug.Log("Server connected after retry. Restarting...");
+                SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            }
+        }));
+    }
+
+
+    IEnumerator CheckServerAvailability(System.Action<bool> onResult)
+    {
+        UnityWebRequest request = UnityWebRequest.Get("http://127.0.0.1:8000/health");
+        request.timeout = 5;
+
+        yield return request.SendWebRequest();
+
+#if UNITY_2020_1_OR_NEWER
+        if (request.result != UnityWebRequest.Result.Success)
+#else
+        if (request.isNetworkError || request.isHttpError)
+#endif
+        {
+            Debug.Log("Server not reachable: " + request.error);
+            onResult?.Invoke(false);
+        }
+        else
+        {
+            Debug.Log("Server is reachable!");
+            onResult?.Invoke(true);
         }
     }
 
-    void Update()
-    {
-
-    }
 
     public Square GetSquareByIndex(int targetIndex)
     {
@@ -132,6 +201,8 @@ public class GameManager : MonoBehaviour
     public void RestartGame()
     {
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        NoConnectionPopup.SetActive(false);
+        HidePawnPromotionPopup();
         HideGameOver();
     }
 
