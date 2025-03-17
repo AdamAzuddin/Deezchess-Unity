@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System.Linq;
+using Rudz.Chess;
+using Rudz.Chess.Factories;
+using Rudz.Chess.Fen;
 
 public class BoardManager : MonoBehaviour
 {
@@ -113,6 +116,18 @@ public class BoardManager : MonoBehaviour
                 Debug.LogError($"Square component is missing on child at index {index}");
             }
         }
+    }
+
+
+    public void GetLegalMoves()
+    {
+        /*
+        FenError fenErrorCode = GameFactory.Create().SetFen(new FenData(currentFen));
+        if (fenErrorCode.ErrorNumber == 0)
+        {
+            Game game = new Game(new FenData(currentFen));
+            MoveList moves = MoveFactory.GenerateMoves();
+        }*/
     }
 
     string BitboardIndexToUci(int index)
