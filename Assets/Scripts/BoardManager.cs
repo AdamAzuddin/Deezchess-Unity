@@ -76,7 +76,6 @@ public class BoardManager : MonoBehaviour
 
     void Start()
     {
-        GetLegalMoves();
         InitializeBoard();
         gameManager = FindObjectOfType<GameManager>();
         if (gameManager == null)
@@ -119,20 +118,20 @@ public class BoardManager : MonoBehaviour
             }
         }
     }
-
-
     public void GetLegalMoves()
     {
         Game game = new Game(new Position());
         game.SetFen(new FenData(currentFen));
         MoveList moves = MoveFactory.GenerateMoves(game.Position);
         Debug.Log("Legal moves from ChessLib: ");
-        foreach (Move move in moves){
+        foreach (Move move in moves)
+        {
             StringBuilder stringBuilder = new StringBuilder();
             game.MoveToString(move, stringBuilder);
-            Debug.Log(stringBuilder.ToString());
+            var moveStr = UciMoveToBitboardIndices(stringBuilder.ToString());
+            Debug.Log(moveStr.Item1 + " to " + moveStr.Item2);
         }
-        
+
     }
 
     string BitboardIndexToUci(int index)

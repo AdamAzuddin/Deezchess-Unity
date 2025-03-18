@@ -28,13 +28,22 @@ public class GameManager : MonoBehaviour
 
     private Text resultText;
 
-    private Dictionary<int, Square> squareDictionary;
+    private Dictionary<int, Square> squareDictionary = new Dictionary<int, Square>();
     private int piecesLayer;
 
     public int pawnPromotionSquareIndex;
 
     void Start()
     {
+        GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
+        foreach (GameObject squareObject in allSquareObjects)
+        {
+            Square square = squareObject.GetComponent<Square>();
+            if (square != null)
+            {
+                squareDictionary[square.index] = square;
+            }
+        }
         // ✅ Check if API server is connected
         StartCoroutine(CheckServerAvailability(isConnected =>
         {
@@ -45,24 +54,11 @@ public class GameManager : MonoBehaviour
             }
 
             // ✅ Server is connected — continue initializing
-            GameObject[] allSquareObjects = GameObject.FindGameObjectsWithTag("Square");
             piecesLayer = LayerMask.NameToLayer("Pieces");
-            squareDictionary = new Dictionary<int, Square>();
-
             if (resultTextGameObject != null)
             {
                 resultText = resultTextGameObject.GetComponent<Text>();
             }
-
-            foreach (GameObject squareObject in allSquareObjects)
-            {
-                Square square = squareObject.GetComponent<Square>();
-                if (square != null)
-                {
-                    squareDictionary[square.index] = square;
-                }
-            }
-
             Debug.Log("Game initialized successfully.");
         }));
     }
