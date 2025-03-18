@@ -5,6 +5,7 @@ using System.Linq;
 using Rudz.Chess;
 using Rudz.Chess.Factories;
 using Rudz.Chess.Fen;
+using Rudz.Chess.Types;
 
 public class BoardManager : MonoBehaviour
 {
@@ -75,6 +76,7 @@ public class BoardManager : MonoBehaviour
 
     void Start()
     {
+        GetLegalMoves();
         InitializeBoard();
         gameManager = FindObjectOfType<GameManager>();
         if (gameManager == null)
@@ -121,13 +123,16 @@ public class BoardManager : MonoBehaviour
 
     public void GetLegalMoves()
     {
-        /*
-        FenError fenErrorCode = GameFactory.Create().SetFen(new FenData(currentFen));
-        if (fenErrorCode.ErrorNumber == 0)
-        {
-            Game game = new Game(new FenData(currentFen));
-            MoveList moves = MoveFactory.GenerateMoves();
-        }*/
+        Game game = new Game(new Position());
+        game.SetFen(new FenData(currentFen));
+        MoveList moves = MoveFactory.GenerateMoves(game.Position);
+        Debug.Log("Legal moves from ChessLib: ");
+        foreach (Move move in moves){
+            StringBuilder stringBuilder = new StringBuilder();
+            game.MoveToString(move, stringBuilder);
+            Debug.Log(stringBuilder.ToString());
+        }
+        
     }
 
     string BitboardIndexToUci(int index)
