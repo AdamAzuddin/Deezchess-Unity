@@ -18,7 +18,6 @@ public class PlayMultiplayerButton : MonoBehaviour
         playVsAIAsBlackButton.interactable = false;
         playVsAIAsWhiteButton.interactable = false;
         boardManager.PlacePieces();
-        boardManager.GetLegalMoves();
     }
     // Update is called once per frame
     void Update()

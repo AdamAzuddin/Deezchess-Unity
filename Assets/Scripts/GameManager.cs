@@ -44,6 +44,14 @@ public class GameManager : MonoBehaviour
                 squareDictionary[square.index] = square;
             }
         }
+
+        piecesLayer = LayerMask.NameToLayer("Pieces");
+        if (resultTextGameObject != null)
+        {
+            resultText = resultTextGameObject.GetComponent<Text>();
+        }
+        Debug.Log("Game initialized successfully.");
+        /*
         // ✅ Check if API server is connected
         StartCoroutine(CheckServerAvailability(isConnected =>
         {
@@ -60,7 +68,7 @@ public class GameManager : MonoBehaviour
                 resultText = resultTextGameObject.GetComponent<Text>();
             }
             Debug.Log("Game initialized successfully.");
-        }));
+        }));*/
     }
 
     public void ShowNoConnectionPopup()
@@ -118,8 +126,6 @@ public class GameManager : MonoBehaviour
             onResult?.Invoke(true);
         }
     }
-
-
     public Square GetSquareByIndex(int targetIndex)
     {
         if (squareDictionary.TryGetValue(targetIndex, out Square square))
@@ -130,7 +136,6 @@ public class GameManager : MonoBehaviour
         Debug.LogError("Square with index " + targetIndex + " not found!");
         return null;
     }
-
     public void ShowGameOver(string text)
     {
         Piece[] pieces = FindObjectsOfType<Piece>();
@@ -148,10 +153,7 @@ public class GameManager : MonoBehaviour
             resultText.text = text;
         }
         gameOverPopup.SetActive(true);
-
     }
-
-
 
     public void HideGameOver()
     {

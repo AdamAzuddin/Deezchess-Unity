@@ -6049,7 +6049,7 @@ MonoBehaviour:
   isWhitePlayedByHuman: 1
   isBlackPlayedByHuman: 1
   currentState: 2
-  chessAPI: {fileID: 0}
+  chessAPI: {fileID: 1829040339}
 --- !u!4 &985776845
 Transform:
   m_ObjectHideFlags: 0

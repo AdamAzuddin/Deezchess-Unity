@@ -77,7 +77,18 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
     (square.occupiedPiece.pieceColor == PieceColor.Black && !boardManager.gameManager.isWhiteToMove)))
                     {
                         originalSquare = square;
-
+                        int[] possibleLegalMoveIndices = boardManager.GetLegalMovesFromIndex(originalSquare.index, boardManager.currentFen);
+                        foreach (int index in possibleLegalMoveIndices)
+                        {
+                            Debug.Log(index);
+                            Square squareToHighlight = boardManager.FindSquareByIndex(index);
+                            if (squareToHighlight != null)
+                            {
+                                boardManager.HighlightSquare(squareToHighlight);
+                            }
+                        }
+                        canDrag = true;
+                        /*
                         Debug.Log("Sending request to the API...");
                         StartCoroutine(boardManager.chessAPI.GetLegalMovesFromIndex(square.index, boardManager.currentFen, (possibleLegalMoveIndices) =>
                         {
@@ -95,7 +106,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                             }
 
                             canDrag = true;
-                        }));
+                        }));*/
                     }
 
                     else
@@ -300,46 +311,37 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 {
                     boardManager.AddFen(boardManager.fenOccurences, fenParts[0] + fenParts[2]);
                 }
-
-
                 if (halfMoveCount == 50)
                 {
                     boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
                 }
-                boardManager.GetNumberOfLegalMoves(boardManager.currentFen, moveCount =>
+                int moveCount = boardManager.GetNumberOfLegalMoves(boardManager.currentFen);
+                if (moveCount == 0)
                 {
-                    if (moveCount == 0)
+                    if (fenParts[1] == "w")
                     {
-                        if (fenParts[1] == "w")
-                        {
-                            boardManager.gameManager.ShowGameOver("Black win");
-                        }
-                        else if (fenParts[1] == "b")
-                        {
-                            boardManager.gameManager.ShowGameOver("White win");
-                        }
+                        boardManager.gameManager.ShowGameOver("Black win");
                     }
-                });
-
+                    else if (fenParts[1] == "b")
+                    {
+                        boardManager.gameManager.ShowGameOver("White win");
+                    }
+                }
                 // check if next move piece color is played by computer or human
                 if ((boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman) && pieceType != PieceType.King && Math.Abs(originalSquare.index - targetSquare.index) != 2)
                 {
                     boardManager.EngineMove(boardManager.currentFen, boardManager.searchDepth, halfMoveCount, fullMoveCount);
-
                     Debug.Log("Fen after stockfish move: " + boardManager.currentFen);
                     //Check if its game over
                     if (halfMoveCount == 50)
                     {
                         boardManager.gameManager.ShowGameOver("It's a tie by 50 move rule");
                     }
-                    boardManager.GetNumberOfLegalMoves(boardManager.currentFen, moveCount =>
+                    int engineMoveCount = boardManager.GetNumberOfLegalMoves(boardManager.currentFen);
+                    if (engineMoveCount == 0)
                     {
-                        if (moveCount == 0)
-                        {
-                            boardManager.gameManager.ShowGameOver("You Lose!");
-                        }
-                    });
-
+                        boardManager.gameManager.ShowGameOver("You Lose!");
+                    }
                 }
 
             }

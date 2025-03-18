@@ -118,20 +118,41 @@ public class BoardManager : MonoBehaviour
             }
         }
     }
-    public void GetLegalMoves()
+    public List<(int, int)> GetLegalMoves(string fen)
     {
         Game game = new Game(new Position());
-        game.SetFen(new FenData(currentFen));
+        game.SetFen(new FenData(fen));
         MoveList moves = MoveFactory.GenerateMoves(game.Position);
         Debug.Log("Legal moves from ChessLib: ");
+
+        List<(int, int)> movesList = new List<(int, int)>();
+
         foreach (Move move in moves)
         {
             StringBuilder stringBuilder = new StringBuilder();
             game.MoveToString(move, stringBuilder);
             var moveStr = UciMoveToBitboardIndices(stringBuilder.ToString());
             Debug.Log(moveStr.Item1 + " to " + moveStr.Item2);
+            movesList.Add((moveStr.Item1, moveStr.Item2));
+        }
+        return movesList;
+    }
+
+
+    public int[] GetLegalMovesFromIndex(int index, string fen)
+    {
+        List<(int, int)> allMoves = GetLegalMoves(fen);
+        List<int> filteredMoves = new List<int>();
+
+        foreach (var move in allMoves)
+        {
+            if (move.Item1 == index)
+            {
+                filteredMoves.Add(move.Item2);
+            }
         }
 
+        return filteredMoves.ToArray();
     }
 
     string BitboardIndexToUci(int index)
@@ -367,9 +388,9 @@ public class BoardManager : MonoBehaviour
 
         return pieces;
     }
-    public void GetNumberOfLegalMoves(string fen, System.Action<int> onResult)
+    public int GetNumberOfLegalMoves(string fen)
     {
-        StartCoroutine(chessAPI.GetTotalLegalMovesCount(fen, onResult));
+        return GetLegalMoves(fen).Count;
     }
     public List<char> GetCurrentPiecesFromFen()
     {
