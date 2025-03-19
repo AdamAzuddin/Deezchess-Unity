@@ -4,6 +4,11 @@ using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using SFB;
+using System.IO;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using System.Runtime.InteropServices;
+#endif
 
 public class GameManager : MonoBehaviour
 {
@@ -16,6 +21,7 @@ public class GameManager : MonoBehaviour
     public GameObject pawnPromotionPopup;
     public GameObject NoConnectionPopup;
     public GameObject resultTextGameObject;
+    public GameObject PGNUploadPopup;
 
     public GameObject promotionRook;
     public GameObject promotionKnight;
@@ -32,6 +38,12 @@ public class GameManager : MonoBehaviour
     private int piecesLayer;
 
     public int pawnPromotionSquareIndex;
+
+    private const int MaxFileSizeBytes = 5 * 1024 * 1024; // 5MB
+    private Text uploadOutputText;
+
+    private List<GameObject> hiddenPieces = new List<GameObject>();
+    private List<GameObject> hiddenSquares = new List<GameObject>();
 
     void Start()
     {
@@ -62,9 +74,13 @@ public class GameManager : MonoBehaviour
                     squareDictionary[square.index] = square;
                 }
             }
-
             Debug.Log("Game initialized successfully.");
         }));
+    }
+
+    public void TestClick()
+    {
+        Debug.Log("Clicked");
     }
 
     public void ShowNoConnectionPopup()
@@ -123,6 +139,90 @@ public class GameManager : MonoBehaviour
         }
     }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern void UploadFile(string gameObjectName, string methodName, string filter, bool multiple);
+
+    public void UploadPGNFile(Text outputText)
+    {
+        uploadOutputText = outputText;
+        UploadFile(gameObject.name, "OnFileUpload", ".pgn", false);
+    }
+
+    // Called from browser
+    public void OnFileUpload(string url)
+    {
+        StartCoroutine(ReadAndUploadFile(url));
+    }
+
+#else
+    public void UploadPGNFile(Text outputText)
+    {
+        uploadOutputText = outputText;
+        var paths = StandaloneFileBrowser.OpenFilePanel("Select PGN File", "", "pgn", false);
+        if (paths.Length > 0)
+        {
+            string path = paths[0];
+
+            FileInfo fileInfo = new FileInfo(path);
+            if (fileInfo.Length > MaxFileSizeBytes)
+            {
+                uploadOutputText.text = "File too large! Maximum size is 5MB.";
+                return;
+            }
+
+            StartCoroutine(ReadAndUploadFile("file://" + path, path));
+        }
+    }
+#endif
+
+    private IEnumerator ReadAndUploadFile(string fileUrl, string filePath = null)
+    {
+        UnityWebRequest fileRequest = UnityWebRequest.Get(fileUrl);
+        yield return fileRequest.SendWebRequest();
+
+#if UNITY_2020_1_OR_NEWER
+        if (fileRequest.result != UnityWebRequest.Result.Success)
+#else
+        if (fileRequest.isNetworkError || fileRequest.isHttpError)
+#endif
+        {
+            uploadOutputText.text = "Failed to read file: " + fileRequest.error;
+            yield break;
+        }
+
+        byte[] fileData = fileRequest.downloadHandler.data;
+
+        if (fileData.Length > MaxFileSizeBytes)
+        {
+            uploadOutputText.text = "File too large! Maximum size is 5MB.";
+            yield break;
+        }
+
+        uploadOutputText.text = "Uploading...";
+
+        WWWForm form = new WWWForm();
+        string fileName = filePath != null ? Path.GetFileName(filePath) : "uploaded.pgn";
+        form.AddBinaryData("file", fileData, fileName, "text/plain");
+
+        UnityWebRequest uploadRequest = UnityWebRequest.Post("http://localhost:8000/pgn_upload", form);
+        yield return uploadRequest.SendWebRequest();
+
+#if UNITY_2020_1_OR_NEWER
+        if (uploadRequest.result != UnityWebRequest.Result.Success)
+#else
+        if (uploadRequest.isNetworkError || uploadRequest.isHttpError)
+#endif
+        {
+            uploadOutputText.text = "Upload Failed: " + uploadRequest.error;
+            Debug.Log("Upload Failed: " + uploadRequest.error);
+        }
+        else
+        {
+            uploadOutputText.text = "Upload Success: " + uploadRequest.downloadHandler.text;
+            Debug.Log("Upload Success: " + uploadRequest.downloadHandler.text);
+        }
+    }
 
     public Square GetSquareByIndex(int targetIndex)
     {
@@ -152,15 +252,56 @@ public class GameManager : MonoBehaviour
             resultText.text = text;
         }
         gameOverPopup.SetActive(true);
-
     }
-
-
 
     public void HideGameOver()
     {
         gameOverPopup.SetActive(false);
     }
+
+
+
+    public void ShowPGNUploaderPopup()
+    {
+        hiddenPieces.Clear();
+        hiddenSquares.Clear();
+
+        Piece[] pieces = FindObjectsOfType<Piece>();
+        foreach (Piece piece in pieces)
+        {
+            hiddenPieces.Add(piece.gameObject);
+            piece.gameObject.SetActive(false);
+        }
+
+        Square[] squares = FindObjectsOfType<Square>();
+        foreach (Square square in squares)
+        {
+            hiddenSquares.Add(square.gameObject);
+            square.gameObject.SetActive(false);
+        }
+        PGNUploadPopup.SetActive(true);
+    }
+
+    public void HidePGNUploaderPopup()
+    {
+        foreach (GameObject piece in hiddenPieces)
+        {
+            if (piece != null) piece.SetActive(true);
+        }
+
+        foreach (GameObject square in hiddenSquares)
+        {
+            if (square != null) square.SetActive(true);
+        }
+
+        PGNUploadPopup.SetActive(false);
+
+        // Optional: clear again if you don’t plan to reuse lists
+        hiddenPieces.Clear();
+        hiddenSquares.Clear();
+    }
+
+
 
     public void ShowPawnPromotionPopup(Piece.PieceColor color)
     {
