@@ -41,9 +41,10 @@ public class GameManager : MonoBehaviour
 
     private const int MaxFileSizeBytes = 5 * 1024 * 1024; // 5MB
     private Text uploadOutputText;
-
     private List<GameObject> hiddenPieces = new List<GameObject>();
     private List<GameObject> hiddenSquares = new List<GameObject>();
+    public InputField playerNameInputField;
+    public Button uploadButton;
 
     void Start()
     {
@@ -76,7 +77,27 @@ public class GameManager : MonoBehaviour
             }
             Debug.Log("Game initialized successfully.");
         }));
+
+        playerNameInputField.onValueChanged.AddListener(ValidatePlayerName);
+        ValidatePlayerName(playerNameInputField.text); // Initial check
     }
+
+    private void ValidatePlayerName(string value)
+    {
+        bool isValid = !string.IsNullOrWhiteSpace(value);
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+    // WebGL-specific workaround
+    uploadButton.interactable = isValid;
+
+    var group = uploadButton.GetComponent<CanvasGroup>() ?? uploadButton.gameObject.AddComponent<CanvasGroup>();
+    group.blocksRaycasts = isValid;
+#else
+        // Normal behavior for other platforms
+        uploadButton.interactable = isValid;
+#endif
+    }
+
 
     public void TestClick()
     {
@@ -178,13 +199,15 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator ReadAndUploadFile(string fileUrl, string filePath = null)
     {
+
+        string playerName = playerNameInputField.text;
+        Debug.Log("Creating bot for " + playerName);
         UnityWebRequest fileRequest = UnityWebRequest.Get(fileUrl);
         yield return fileRequest.SendWebRequest();
-
 #if UNITY_2020_1_OR_NEWER
         if (fileRequest.result != UnityWebRequest.Result.Success)
 #else
-        if (fileRequest.isNetworkError || fileRequest.isHttpError)
+    if (fileRequest.isNetworkError || fileRequest.isHttpError)
 #endif
         {
             uploadOutputText.text = "Failed to read file: " + fileRequest.error;
@@ -206,12 +229,13 @@ public class GameManager : MonoBehaviour
         form.AddBinaryData("file", fileData, fileName, "text/plain");
 
         UnityWebRequest uploadRequest = UnityWebRequest.Post("http://localhost:8000/pgn_upload", form);
+        uploadRequest.downloadHandler = new DownloadHandlerBuffer(); // Ensure we get full binary response
         yield return uploadRequest.SendWebRequest();
 
 #if UNITY_2020_1_OR_NEWER
         if (uploadRequest.result != UnityWebRequest.Result.Success)
 #else
-        if (uploadRequest.isNetworkError || uploadRequest.isHttpError)
+    if (uploadRequest.isNetworkError || uploadRequest.isHttpError)
 #endif
         {
             uploadOutputText.text = "Upload Failed: " + uploadRequest.error;
@@ -219,10 +243,17 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            uploadOutputText.text = "Upload Success: " + uploadRequest.downloadHandler.text;
-            Debug.Log("Upload Success: " + uploadRequest.downloadHandler.text);
+            byte[] binFileData = uploadRequest.downloadHandler.data;
+
+            // Save received .bin file
+            string savePath = Path.Combine(Application.persistentDataPath, "opening_book.bin");
+            File.WriteAllBytes(savePath, binFileData);
+
+            uploadOutputText.text = "Upload Success. File saved at: " + savePath;
+            Debug.Log("Upload Success. .bin file saved at: " + savePath);
         }
     }
+    // TODO: Download zip file that we got from server, and save it to Application.persistentDataPath
 
     public Square GetSquareByIndex(int targetIndex)
     {
