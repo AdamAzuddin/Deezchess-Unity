@@ -97,8 +97,6 @@ public class GameManager : MonoBehaviour
         uploadButton.interactable = isValid;
 #endif
     }
-
-
     public void TestClick()
     {
         Debug.Log("Clicked");
@@ -226,6 +224,7 @@ public class GameManager : MonoBehaviour
 
         WWWForm form = new WWWForm();
         string fileName = filePath != null ? Path.GetFileName(filePath) : "uploaded.pgn";
+        form.AddField("playerName", playerName);
         form.AddBinaryData("file", fileData, fileName, "text/plain");
 
         UnityWebRequest uploadRequest = UnityWebRequest.Post("http://localhost:8000/pgn_upload", form);
