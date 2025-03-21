@@ -246,33 +246,48 @@ public class GameManager : MonoBehaviour
         else
         {
             byte[] zipFileData = uploadRequest.downloadHandler.data;
-
-            // Save received .zip file
             string zipSavePath = Path.Combine(Application.persistentDataPath, "bot.zip");
             File.WriteAllBytes(zipSavePath, zipFileData);
-
             uploadOutputText.text = "Upload Success. Zip file saved at: " + zipSavePath;
             Debug.Log("Upload Success. Zip file saved at: " + zipSavePath);
 
-            // Extract zip file
             string extractPath = Path.Combine(Application.persistentDataPath, "bot_output");
-
-            // Ensure directory exists
+            
             if (!Directory.Exists(extractPath))
             {
                 Directory.CreateDirectory(extractPath);
             }
 
-            // Extract ZIP
             ZipFile.ExtractToDirectory(zipSavePath, extractPath, true);
-
             Debug.Log("Zip extracted to: " + extractPath);
             uploadOutputText.text += "\nZip extracted to: " + extractPath;
-            botPath = extractPath;
             File.Delete(zipSavePath);
+            string[] binFiles = Directory.GetFiles(extractPath, playerName + ".bin", SearchOption.AllDirectories);
+            if (binFiles.Length > 0)
+            {
+                string binFilePath = binFiles[0];
+                FileInfo binInfo = new FileInfo(binFilePath);
+                if (binInfo.Length == 0)
+                {
+                    // If .bin file is 0KB, delete it and its corresponding .json file
+                    string jsonFilePath = Path.ChangeExtension(binFilePath, ".json");
+                    if (File.Exists(binFilePath)) File.Delete(binFilePath);
+                    if (File.Exists(jsonFilePath)) File.Delete(jsonFilePath);
+                    Debug.LogWarning("Bot .bin file is empty (0KB). Player not found in PGN file. Files deleted.");
+                    uploadOutputText.text = "\nBot .bin file was empty. Player not found in PGN. Deleted files.";
+                    yield break;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("No .bin file found in extracted folder.");
+                uploadOutputText.text += "\nNo .bin file found in extracted folder.";
+                yield break;
+            }
+            
+            botPath = extractPath;
         }
     }
-
     public Square GetSquareByIndex(int targetIndex)
     {
         if (squareDictionary.TryGetValue(targetIndex, out Square square))
