@@ -711,6 +711,9 @@ public class BoardManager : MonoBehaviour
         return gameManager.GetSquareByIndex(targetIndex);
     }
 
+    //TODO: Find possible move using current fen and .bin in gameManager.botPath 
+    // TODO: Make a req to /find_opening_move
+    // TODO: If found, play it. If not, send request to /get_engine_move to and move the piece according to the response
     public void EngineMove(string fen, int depth, int halfMoveCount, int fullMoveCount)
     {
         // find the best move using stockfish

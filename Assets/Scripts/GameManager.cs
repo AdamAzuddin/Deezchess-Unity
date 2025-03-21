@@ -47,7 +47,7 @@ public class GameManager : MonoBehaviour
     public InputField playerNameInputField;
     public Button uploadButton;
 
-    protected string botPath;
+    public string botPath;
 
     void Start()
     {
@@ -284,7 +284,7 @@ public class GameManager : MonoBehaviour
                 uploadOutputText.text += "\nNo .bin file found in extracted folder.";
                 yield break;
             }
-            
+            // TODO: Start the game vs bot.
             botPath = extractPath;
         }
     }
