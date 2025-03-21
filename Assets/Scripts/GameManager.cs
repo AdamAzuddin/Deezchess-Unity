@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO.Compression;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
@@ -45,6 +46,8 @@ public class GameManager : MonoBehaviour
     private List<GameObject> hiddenSquares = new List<GameObject>();
     public InputField playerNameInputField;
     public Button uploadButton;
+
+    protected string botPath;
 
     void Start()
     {
@@ -242,17 +245,33 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            byte[] binFileData = uploadRequest.downloadHandler.data;
+            byte[] zipFileData = uploadRequest.downloadHandler.data;
 
-            // Save received .bin file
-            string savePath = Path.Combine(Application.persistentDataPath, "opening_book.bin");
-            File.WriteAllBytes(savePath, binFileData);
+            // Save received .zip file
+            string zipSavePath = Path.Combine(Application.persistentDataPath, "bot.zip");
+            File.WriteAllBytes(zipSavePath, zipFileData);
 
-            uploadOutputText.text = "Upload Success. File saved at: " + savePath;
-            Debug.Log("Upload Success. .bin file saved at: " + savePath);
+            uploadOutputText.text = "Upload Success. Zip file saved at: " + zipSavePath;
+            Debug.Log("Upload Success. Zip file saved at: " + zipSavePath);
+
+            // Extract zip file
+            string extractPath = Path.Combine(Application.persistentDataPath, "bot_output");
+
+            // Ensure directory exists
+            if (!Directory.Exists(extractPath))
+            {
+                Directory.CreateDirectory(extractPath);
+            }
+
+            // Extract ZIP
+            ZipFile.ExtractToDirectory(zipSavePath, extractPath, true);
+
+            Debug.Log("Zip extracted to: " + extractPath);
+            uploadOutputText.text += "\nZip extracted to: " + extractPath;
+            botPath = extractPath;
+            File.Delete(zipSavePath);
         }
     }
-    // TODO: Download zip file that we got from server, and save it to Application.persistentDataPath
 
     public Square GetSquareByIndex(int targetIndex)
     {
