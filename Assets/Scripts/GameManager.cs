@@ -145,7 +145,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator CheckServerAvailability(System.Action<bool> onResult)
     {
-        UnityWebRequest request = UnityWebRequest.Get("http://127.0.0.1:8000/health");
+        UnityWebRequest request = UnityWebRequest.Get("https://deezchess-api.onrender.com/health");
         request.timeout = 5;
 
         yield return request.SendWebRequest();

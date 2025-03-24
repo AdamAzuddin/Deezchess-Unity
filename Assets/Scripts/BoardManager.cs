@@ -975,7 +975,7 @@ public class BoardManager : MonoBehaviour
         form.AddField("playerName", playerName);
         form.AddBinaryData("file", fileData, fileName, "text/plain");
 
-        UnityWebRequest uploadRequest = UnityWebRequest.Post("http://localhost:8000/pgn_upload", form);
+        UnityWebRequest uploadRequest = UnityWebRequest.Post("https://deezchess-api.onrender.com/pgn_upload", form);
         uploadRequest.downloadHandler = new DownloadHandlerBuffer(); // Ensure we get full binary response
         yield return uploadRequest.SendWebRequest();
 

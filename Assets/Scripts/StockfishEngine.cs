@@ -10,7 +10,7 @@ public class StockfishEngine
 
     public IEnumerator GetBestMove(string fen, string binFilePath, string configFilePath, System.Action<string> callback)
     {
-        string url = "http://127.0.0.1:8000/get_bot_move";
+        string url = "https://deezchess-api.onrender.com/get_bot_move";
 
         if (!File.Exists(binFilePath) || !File.Exists(configFilePath))
         {

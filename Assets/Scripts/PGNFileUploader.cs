@@ -86,7 +86,7 @@ public class PGNFileUploader : MonoBehaviour, IPointerDownHandler
         string fileName = filePath != null ? Path.GetFileName(filePath) : "uploaded.pgn";
         form.AddBinaryData("file", fileData, fileName, "text/plain");
 
-        UnityWebRequest uploadRequest = UnityWebRequest.Post("http://localhost:8000/pgn_upload", form);
+        UnityWebRequest uploadRequest = UnityWebRequest.Post("https://deezchess-api.onrender.com/pgn_upload", form);
 
         yield return uploadRequest.SendWebRequest();
 

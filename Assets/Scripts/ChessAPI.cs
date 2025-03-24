@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 public class ChessAPI : MonoBehaviour
 {
-    private const string apiUrl = "http://127.0.0.1:8000/legal_moves"; // Change if deployed
+    private const string apiUrl = "https://deezchess-api.onrender.com/legal_moves"; // Change if deployed
 
     public GameManager gameManager;
 
