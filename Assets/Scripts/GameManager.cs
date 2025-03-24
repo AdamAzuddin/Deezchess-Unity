@@ -7,6 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using SFB;
 using System.IO;
+using System;
 #if UNITY_WEBGL && !UNITY_EDITOR
 using System.Runtime.InteropServices;
 #endif
@@ -40,14 +41,18 @@ public class GameManager : MonoBehaviour
 
     public int pawnPromotionSquareIndex;
 
-    private const int MaxFileSizeBytes = 5 * 1024 * 1024; // 5MB
-    private Text uploadOutputText;
+    public Text uploadOutputText;
     private List<GameObject> hiddenPieces = new List<GameObject>();
     private List<GameObject> hiddenSquares = new List<GameObject>();
     public InputField playerNameInputField;
     public Button uploadButton;
 
     public string botPath;
+    public string botOpeningBookPath;
+    public string botConfigPath;
+
+    public Boolean isVsAIAsWhite = false;
+    public Boolean isVsAIAsBlack = false;
 
     void Start()
     {
@@ -158,134 +163,6 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("Server is reachable!");
             onResult?.Invoke(true);
-        }
-    }
-
-#if UNITY_WEBGL && !UNITY_EDITOR
-    [DllImport("__Internal")]
-    private static extern void UploadFile(string gameObjectName, string methodName, string filter, bool multiple);
-
-    public void UploadPGNFile(Text outputText)
-    {
-        uploadOutputText = outputText;
-        UploadFile(gameObject.name, "OnFileUpload", ".pgn", false);
-    }
-
-    // Called from browser
-    public void OnFileUpload(string url)
-    {
-        StartCoroutine(ReadAndUploadFile(url));
-    }
-
-#else
-    public void UploadPGNFile(Text outputText)
-    {
-        uploadOutputText = outputText;
-        var paths = StandaloneFileBrowser.OpenFilePanel("Select PGN File", "", "pgn", false);
-        if (paths.Length > 0)
-        {
-            string path = paths[0];
-
-            FileInfo fileInfo = new FileInfo(path);
-            if (fileInfo.Length > MaxFileSizeBytes)
-            {
-                uploadOutputText.text = "File too large! Maximum size is 5MB.";
-                return;
-            }
-
-            StartCoroutine(ReadAndUploadFile("file://" + path, path));
-        }
-    }
-#endif
-
-    private IEnumerator ReadAndUploadFile(string fileUrl, string filePath = null)
-    {
-
-        string playerName = playerNameInputField.text;
-        Debug.Log("Creating bot for " + playerName);
-        UnityWebRequest fileRequest = UnityWebRequest.Get(fileUrl);
-        yield return fileRequest.SendWebRequest();
-#if UNITY_2020_1_OR_NEWER
-        if (fileRequest.result != UnityWebRequest.Result.Success)
-#else
-    if (fileRequest.isNetworkError || fileRequest.isHttpError)
-#endif
-        {
-            uploadOutputText.text = "Failed to read file: " + fileRequest.error;
-            yield break;
-        }
-
-        byte[] fileData = fileRequest.downloadHandler.data;
-
-        if (fileData.Length > MaxFileSizeBytes)
-        {
-            uploadOutputText.text = "File too large! Maximum size is 5MB.";
-            yield break;
-        }
-
-        uploadOutputText.text = "Uploading...";
-
-        WWWForm form = new WWWForm();
-        string fileName = filePath != null ? Path.GetFileName(filePath) : "uploaded.pgn";
-        form.AddField("playerName", playerName);
-        form.AddBinaryData("file", fileData, fileName, "text/plain");
-
-        UnityWebRequest uploadRequest = UnityWebRequest.Post("http://localhost:8000/pgn_upload", form);
-        uploadRequest.downloadHandler = new DownloadHandlerBuffer(); // Ensure we get full binary response
-        yield return uploadRequest.SendWebRequest();
-
-#if UNITY_2020_1_OR_NEWER
-        if (uploadRequest.result != UnityWebRequest.Result.Success)
-#else
-    if (uploadRequest.isNetworkError || uploadRequest.isHttpError)
-#endif
-        {
-            uploadOutputText.text = "Upload Failed: " + uploadRequest.error;
-            Debug.Log("Upload Failed: " + uploadRequest.error);
-        }
-        else
-        {
-            byte[] zipFileData = uploadRequest.downloadHandler.data;
-            string zipSavePath = Path.Combine(Application.persistentDataPath, "bot.zip");
-            File.WriteAllBytes(zipSavePath, zipFileData);
-            uploadOutputText.text = "Upload Success. Zip file saved at: " + zipSavePath;
-            Debug.Log("Upload Success. Zip file saved at: " + zipSavePath);
-
-            string extractPath = Path.Combine(Application.persistentDataPath, "bot_output");
-            
-            if (!Directory.Exists(extractPath))
-            {
-                Directory.CreateDirectory(extractPath);
-            }
-
-            ZipFile.ExtractToDirectory(zipSavePath, extractPath, true);
-            Debug.Log("Zip extracted to: " + extractPath);
-            uploadOutputText.text += "\nZip extracted to: " + extractPath;
-            File.Delete(zipSavePath);
-            string[] binFiles = Directory.GetFiles(extractPath, playerName + ".bin", SearchOption.AllDirectories);
-            if (binFiles.Length > 0)
-            {
-                string binFilePath = binFiles[0];
-                FileInfo binInfo = new FileInfo(binFilePath);
-                if (binInfo.Length == 0)
-                {
-                    // If .bin file is 0KB, delete it and its corresponding .json file
-                    string jsonFilePath = Path.ChangeExtension(binFilePath, ".json");
-                    if (File.Exists(binFilePath)) File.Delete(binFilePath);
-                    if (File.Exists(jsonFilePath)) File.Delete(jsonFilePath);
-                    Debug.LogWarning("Bot .bin file is empty (0KB). Player not found in PGN file. Files deleted.");
-                    uploadOutputText.text = "\nBot .bin file was empty. Player not found in PGN. Deleted files.";
-                    yield break;
-                }
-            }
-            else
-            {
-                Debug.LogWarning("No .bin file found in extracted folder.");
-                uploadOutputText.text += "\nNo .bin file found in extracted folder.";
-                yield break;
-            }
-            // TODO: Start the game vs bot.
-            botPath = extractPath;
         }
     }
     public Square GetSquareByIndex(int targetIndex)

@@ -101,7 +101,7 @@ public class King : Piece
             Debug.Log("Fen after castling: " + boardManager.currentFen);
             if (boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman)
             {
-                boardManager.EngineMove(boardManager.currentFen, boardManager.searchDepth, halfMoveCount, fullMoveCount);
+                boardManager.EngineMove(boardManager.currentFen, halfMoveCount, fullMoveCount);
             }
         }
 

@@ -324,7 +324,7 @@ public class Piece : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IEnd
                 // check if next move piece color is played by computer or human
                 if ((boardManager.gameManager.isWhiteToMove && !boardManager.isWhitePlayedByHuman || !boardManager.gameManager.isWhiteToMove && !boardManager.isBlackPlayedByHuman) && pieceType != PieceType.King && Math.Abs(originalSquare.index - targetSquare.index) != 2)
                 {
-                    boardManager.EngineMove(boardManager.currentFen, boardManager.searchDepth, halfMoveCount, fullMoveCount);
+                    boardManager.EngineMove(boardManager.currentFen, halfMoveCount, fullMoveCount);
 
                     Debug.Log("Fen after stockfish move: " + boardManager.currentFen);
                     //Check if its game over

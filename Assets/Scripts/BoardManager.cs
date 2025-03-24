@@ -2,6 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Text;
 using System.Linq;
+using System.Collections;
+using System.IO.Compression;
+using UnityEngine.Networking;
+using UnityEngine.UI;
+using SFB;
+using System.IO;
+#if UNITY_WEBGL && !UNITY_EDITOR
+using System.Runtime.InteropServices;
+#endif
 
 public class BoardManager : MonoBehaviour
 {
@@ -44,6 +53,8 @@ public class BoardManager : MonoBehaviour
 
     public readonly StockfishEngine engine = new StockfishEngine();
 
+    private const int MaxFileSizeBytes = 5 * 1024 * 1024; // 5MB
+
     public enum BoardState
     {
         SelectingPiece,
@@ -56,7 +67,11 @@ public class BoardManager : MonoBehaviour
     public static BoardManager Instance;
     public ChessAPI chessAPI;
 
+    public GameObject boardObject;
 
+    public Button playVsAIAsWhiteButton;
+    public Button playVsAIAsBlackButton;
+    public Button playMultiplayerButton;
 
     private void Awake()
     {
@@ -711,181 +726,340 @@ public class BoardManager : MonoBehaviour
         return gameManager.GetSquareByIndex(targetIndex);
     }
 
-    //TODO: Find possible move using current fen and .bin in gameManager.botPath 
-    // TODO: Make a req to /find_opening_move
-    // TODO: If found, play it. If not, send request to /get_engine_move to and move the piece according to the response
-    public void EngineMove(string fen, int depth, int halfMoveCount, int fullMoveCount)
+    public void EngineMove(string fen, int halfMoveCount, int fullMoveCount)
     {
-        // find the best move using stockfish
-        string bestMoveUci = engine.GetBestMove(fen, depth);
-        bool isPromotionMove = false;
-        char pieceToPromoteWith = ' ';
-        // check if its a promotion!
-        if (bestMoveUci.Length == 5)
+        StartCoroutine(engine.GetBestMove(fen, gameManager.botOpeningBookPath, gameManager.botConfigPath, (bestMoveUci) =>
+{
+    Debug.Log("Received move: " + bestMoveUci);
+    bool isPromotionMove = false;
+    char pieceToPromoteWith = ' ';
+    // check if its a promotion!
+    if (bestMoveUci.Length == 5)
+    {
+        isPromotionMove = true;
+        pieceToPromoteWith = bestMoveUci[^1]; // Get the last character as string
+        bestMoveUci = bestMoveUci.Remove(bestMoveUci.Length - 1);
+    }
+    Debug.Log("BestMoveUCI length: " + bestMoveUci.Length);
+    var bestMove = UciMoveToBitboardIndices(bestMoveUci);
+    if (bestMove.Item1 == -1)
+    {
+        gameManager.ShowGameOver("Stockfish gave invalid Move");
+    }
+
+    bool isCastling = false;
+    if (bestMove.Item2 == bestMove.Item1 && bestMove.Item1 != -1)
+    {
+        isCastling = true;
+    }
+    if (!isCastling)
+    {
+        Debug.Log($"Stockfish move from: {bestMove.Item1}, To: {bestMove.Item2}");
+        Square initialSquare = FindSquareByIndex(bestMove.Item1);
+        Square targetSquare = FindSquareByIndex(bestMove.Item2);
+
+        // actually move the piece
+        Piece pieceToMove = initialSquare.occupiedPiece;
+        if (targetSquare.occupiedPiece != null)
         {
-            isPromotionMove = true;
-            pieceToPromoteWith = bestMoveUci[^1]; // Get the last character as string
-            bestMoveUci = bestMoveUci.Remove(bestMoveUci.Length - 1);
+            Destroy(targetSquare.occupiedPiece.gameObject);
         }
-        Debug.Log("BestMoveUCI length: " + bestMoveUci.Length);
-        var bestMove = UciMoveToBitboardIndices(bestMoveUci);
-        if (bestMove.Item1 == -1)
+        pieceToMove.transform.position = targetSquare.transform.position;
+        pieceToMove.currentX = targetSquare.index % 8;
+        pieceToMove.currentY = targetSquare.index / 8;
+        if (pieceToMove.pieceType == Piece.PieceType.Pawn || targetSquare.occupiedPiece != null)
         {
-            gameManager.ShowGameOver("Stockfish gave invalid Move");
+            halfMoveCount = 0;
         }
-
-        bool isCastling = false;
-        if (bestMove.Item2 == bestMove.Item1 && bestMove.Item1 != -1)
-        {
-            isCastling = true;
-        }
-        if (!isCastling)
-        {
-            Debug.Log($"Stockfish move from: {bestMove.Item1}, To: {bestMove.Item2}");
-            Square initialSquare = FindSquareByIndex(bestMove.Item1);
-            Square targetSquare = FindSquareByIndex(bestMove.Item2);
-
-            // actually move the piece
-            Piece pieceToMove = initialSquare.occupiedPiece;
-            if (targetSquare.occupiedPiece != null)
-            {
-                Destroy(targetSquare.occupiedPiece.gameObject);
-            }
-            pieceToMove.transform.position = targetSquare.transform.position;
-            pieceToMove.currentX = targetSquare.index % 8;
-            pieceToMove.currentY = targetSquare.index / 8;
-            if (pieceToMove.pieceType == Piece.PieceType.Pawn || targetSquare.occupiedPiece != null)
-            {
-                halfMoveCount = 0;
-            }
-            else
-            {
-                halfMoveCount++;
-            }
-            if (pieceToMove.pieceColor == Piece.PieceColor.Black)
-            {
-                fullMoveCount++;
-            }
-            targetSquare.occupiedPiece = pieceToMove;
-            initialSquare.occupiedPiece = null;
-            bool isCastlingMove = false;
-            if (initialSquare.index == targetSquare.index && initialSquare.index != -1)
-                isCastlingMove = true;
-
-            MovePiece(initialSquare.index, targetSquare.index, isCastlingMove); // move in fen
-            string[] fenParts = currentFen.Split(' ');
-            currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
-
-            if (isPromotionMove)
-            {
-                if (targetSquare.occupiedPiece != null)
-                {
-                    // change occupied piece from pawn to the selected piece
-                    Destroy(targetSquare.occupiedPiece.gameObject);
-                    targetSquare.occupiedPiece = null;
-                    Debug.Log("Stockfish want to promote to " + pieceToPromoteWith);
-                    Debug.Log("Current color to move: " + currentFen.Split()[1]);
-                    Piece.PieceColor pieceToPromoteWithColor = (currentFen.Split()[1] == "b") ? Piece.PieceColor.White : Piece.PieceColor.Black;
-                    Piece.PieceType pieceToPromoteWithType = char.ToLower(pieceToPromoteWith) switch // Convert to lowercase to handle case-insensitivity
-                    {
-                        'q' => Piece.PieceType.Queen,
-                        'r' => Piece.PieceType.Rook,
-                        'b' => Piece.PieceType.Bishop,
-                        'n' => Piece.PieceType.Knight,
-                        _ => Piece.PieceType.Queen,// Default to Queen if input is invalid
-                    };
-                    GameObject promotionPiecePrefab = GetPrefab(pieceToPromoteWithType, pieceToPromoteWithColor);
-                    PlacePiece(promotionPiecePrefab, targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType, isWhitePlayedByHuman, isBlackPlayedByHuman);
-                    UpdateFenAfterPromotion(targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType);
-                }
-            }
-        }
-
-        // castling move
         else
         {
-            int kingTargetSquareIndex = 0;
-            int rookTargetSquareIndex = 0;
-            int originalRookIndex = 0;
-
-            bool isWhiteCastling = true;
-
-            Piece whiteKing = FindSquareByIndex(4).occupiedPiece;
-            Piece blackKing = FindSquareByIndex(60).occupiedPiece;
-            switch (bestMove.Item1)
-            {
-                case 0:
-                    kingTargetSquareIndex = 6;
-                    rookTargetSquareIndex = 5;
-                    originalRookIndex = 7;
-                    break;
-                case 1:
-                    kingTargetSquareIndex = 2;
-                    rookTargetSquareIndex = 3;
-                    originalRookIndex = 0;
-                    break;
-                case 2:
-                    kingTargetSquareIndex = 62;
-                    rookTargetSquareIndex = 61;
-                    originalRookIndex = 63;
-                    isWhiteCastling = false;
-                    break;
-                case 3:
-                    kingTargetSquareIndex = 58;
-                    rookTargetSquareIndex = 59;
-                    originalRookIndex = 56;
-                    isWhiteCastling = false;
-                    break;
-            }
-            string[] fenParts = currentFen.Split(' ');
-            string castlingRights = fenParts[2];
-            if (isWhiteCastling)
-            {
-                whiteKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
-                FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = whiteKing;
-                FindSquareByIndex(4).occupiedPiece = null;
-                MovePiece(4, kingTargetSquareIndex, true);
-                castlingRights = castlingRights.Replace("K", "").Replace("Q", "");
-            }
-            else
-            {
-                blackKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
-                FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = blackKing;
-                FindSquareByIndex(60).occupiedPiece = null;
-                MovePiece(60, kingTargetSquareIndex, true);
-                castlingRights = castlingRights.Replace("q", "").Replace("q", "");
-            }
-            if (castlingRights == "")
-            {
-                castlingRights = "-";
-            }
-            FindSquareByIndex(originalRookIndex).occupiedPiece.transform.position = FindSquareByIndex(rookTargetSquareIndex).transform.position;
-            MovePiece(originalRookIndex, rookTargetSquareIndex, true);
-            FindSquareByIndex(rookTargetSquareIndex).occupiedPiece = FindSquareByIndex(originalRookIndex).occupiedPiece;
-            FindSquareByIndex(originalRookIndex).occupiedPiece = null;
-
-            fenParts[0] = currentFen.Split(' ')[0];
-            string sideToMove = fenParts[1];
-
-            if (sideToMove == "w")
-            {
-                sideToMove = "b";
-            }
-            else
-            {
-                sideToMove = "w";
-            }
-
-
-            gameManager.isWhiteToMove = !gameManager.isWhiteToMove;
-            currentFen = fenParts[0] + " " + sideToMove + " " + castlingRights + " " + fenParts[3] + " " + fenParts[4] + " " + fenParts[5];
-            Debug.Log("Stockfish castled! Current fen: " + currentFen);
+            halfMoveCount++;
         }
+        if (pieceToMove.pieceColor == Piece.PieceColor.Black)
+        {
+            fullMoveCount++;
+        }
+        targetSquare.occupiedPiece = pieceToMove;
+        initialSquare.occupiedPiece = null;
+        bool isCastlingMove = false;
+        if (initialSquare.index == targetSquare.index && initialSquare.index != -1)
+            isCastlingMove = true;
+
+        MovePiece(initialSquare.index, targetSquare.index, isCastlingMove); // move in fen
+        string[] fenParts = currentFen.Split(' ');
+        currentFen = fenParts[0] + " " + fenParts[1] + " " + fenParts[2] + " " + fenParts[3] + " " + halfMoveCount.ToString() + " " + fullMoveCount.ToString();
+
+        if (isPromotionMove)
+        {
+            if (targetSquare.occupiedPiece != null)
+            {
+                // change occupied piece from pawn to the selected piece
+                Destroy(targetSquare.occupiedPiece.gameObject);
+                targetSquare.occupiedPiece = null;
+                Debug.Log("Stockfish want to promote to " + pieceToPromoteWith);
+                Debug.Log("Current color to move: " + currentFen.Split()[1]);
+                Piece.PieceColor pieceToPromoteWithColor = (currentFen.Split()[1] == "b") ? Piece.PieceColor.White : Piece.PieceColor.Black;
+                Piece.PieceType pieceToPromoteWithType = char.ToLower(pieceToPromoteWith) switch // Convert to lowercase to handle case-insensitivity
+                {
+                    'q' => Piece.PieceType.Queen,
+                    'r' => Piece.PieceType.Rook,
+                    'b' => Piece.PieceType.Bishop,
+                    'n' => Piece.PieceType.Knight,
+                    _ => Piece.PieceType.Queen,// Default to Queen if input is invalid
+                };
+                GameObject promotionPiecePrefab = GetPrefab(pieceToPromoteWithType, pieceToPromoteWithColor);
+                PlacePiece(promotionPiecePrefab, targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType, isWhitePlayedByHuman, isBlackPlayedByHuman);
+                UpdateFenAfterPromotion(targetSquare.index, pieceToPromoteWithColor, pieceToPromoteWithType);
+            }
+        }
+    }
+
+    // castling move
+    else
+    {
+        int kingTargetSquareIndex = 0;
+        int rookTargetSquareIndex = 0;
+        int originalRookIndex = 0;
+
+        bool isWhiteCastling = true;
+
+        Piece whiteKing = FindSquareByIndex(4).occupiedPiece;
+        Piece blackKing = FindSquareByIndex(60).occupiedPiece;
+        switch (bestMove.Item1)
+        {
+            case 0:
+                kingTargetSquareIndex = 6;
+                rookTargetSquareIndex = 5;
+                originalRookIndex = 7;
+                break;
+            case 1:
+                kingTargetSquareIndex = 2;
+                rookTargetSquareIndex = 3;
+                originalRookIndex = 0;
+                break;
+            case 2:
+                kingTargetSquareIndex = 62;
+                rookTargetSquareIndex = 61;
+                originalRookIndex = 63;
+                isWhiteCastling = false;
+                break;
+            case 3:
+                kingTargetSquareIndex = 58;
+                rookTargetSquareIndex = 59;
+                originalRookIndex = 56;
+                isWhiteCastling = false;
+                break;
+        }
+        string[] fenParts = currentFen.Split(' ');
+        string castlingRights = fenParts[2];
+        if (isWhiteCastling)
+        {
+            whiteKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
+            FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = whiteKing;
+            FindSquareByIndex(4).occupiedPiece = null;
+            MovePiece(4, kingTargetSquareIndex, true);
+            castlingRights = castlingRights.Replace("K", "").Replace("Q", "");
+        }
+        else
+        {
+            blackKing.transform.position = FindSquareByIndex(kingTargetSquareIndex).transform.position;
+            FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = blackKing;
+            FindSquareByIndex(60).occupiedPiece = null;
+            MovePiece(60, kingTargetSquareIndex, true);
+            castlingRights = castlingRights.Replace("q", "").Replace("q", "");
+        }
+        if (castlingRights == "")
+        {
+            castlingRights = "-";
+        }
+        FindSquareByIndex(originalRookIndex).occupiedPiece.transform.position = FindSquareByIndex(rookTargetSquareIndex).transform.position;
+        MovePiece(originalRookIndex, rookTargetSquareIndex, true);
+        FindSquareByIndex(rookTargetSquareIndex).occupiedPiece = FindSquareByIndex(originalRookIndex).occupiedPiece;
+        FindSquareByIndex(originalRookIndex).occupiedPiece = null;
+
+        fenParts[0] = currentFen.Split(' ')[0];
+        string sideToMove = fenParts[1];
+
+        if (sideToMove == "w")
+        {
+            sideToMove = "b";
+        }
+        else
+        {
+            sideToMove = "w";
+        }
+
+
+        gameManager.isWhiteToMove = !gameManager.isWhiteToMove;
+        currentFen = fenParts[0] + " " + sideToMove + " " + castlingRights + " " + fenParts[3] + " " + fenParts[4] + " " + fenParts[5];
+        Debug.Log("Stockfish castled! Current fen: " + currentFen);
+    }
+
+    // You can use bestMoveUci here for anything (e.g., make the move on the board)
+}));
     }
 
     public Piece.PieceType SelectPromotionPiece()
     {
         return Piece.PieceType.Queen;
+    }
+
+
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern void UploadFile(string gameObjectName, string methodName, string filter, bool multiple);
+
+    public void UploadPGNFile(Text outputText)
+    {
+        gameManager.uploadOutputText = outputText;
+        UploadFile(gameObject.name, "OnFileUpload", ".pgn", false);
+    }
+
+    // Called from browser
+    public void OnFileUpload(string url)
+    {
+        StartCoroutine(ReadAndUploadFile(url));
+    }
+
+#else
+    public void UploadPGNFile(Text outputText)
+    {
+        gameManager.uploadOutputText = outputText;
+        var paths = StandaloneFileBrowser.OpenFilePanel("Select PGN File", "", "pgn", false);
+        if (paths.Length > 0)
+        {
+            string path = paths[0];
+
+            FileInfo fileInfo = new FileInfo(path);
+            if (fileInfo.Length > MaxFileSizeBytes)
+            {
+                gameManager.uploadOutputText.text = "File too large! Maximum size is 5MB.";
+                return;
+            }
+
+            StartCoroutine(ReadAndUploadFile("file://" + path, path));
+        }
+    }
+#endif
+
+    private IEnumerator ReadAndUploadFile(string fileUrl, string filePath = null)
+    {
+
+        string playerName = gameManager.playerNameInputField.text;
+        Debug.Log("Creating bot for " + playerName);
+        UnityWebRequest fileRequest = UnityWebRequest.Get(fileUrl);
+        yield return fileRequest.SendWebRequest();
+#if UNITY_2020_1_OR_NEWER
+        if (fileRequest.result != UnityWebRequest.Result.Success)
+#else
+    if (fileRequest.isNetworkError || fileRequest.isHttpError)
+#endif
+        {
+            gameManager.uploadOutputText.text = "Failed to read file: " + fileRequest.error;
+            yield break;
+        }
+
+        byte[] fileData = fileRequest.downloadHandler.data;
+
+        if (fileData.Length > MaxFileSizeBytes)
+        {
+            gameManager.uploadOutputText.text = "File too large! Maximum size is 5MB.";
+            yield break;
+        }
+
+        gameManager.uploadOutputText.text = "Uploading...";
+
+        WWWForm form = new WWWForm();
+        string fileName = filePath != null ? Path.GetFileName(filePath) : "uploaded.pgn";
+        form.AddField("playerName", playerName);
+        form.AddBinaryData("file", fileData, fileName, "text/plain");
+
+        UnityWebRequest uploadRequest = UnityWebRequest.Post("http://localhost:8000/pgn_upload", form);
+        uploadRequest.downloadHandler = new DownloadHandlerBuffer(); // Ensure we get full binary response
+        yield return uploadRequest.SendWebRequest();
+
+#if UNITY_2020_1_OR_NEWER
+        if (uploadRequest.result != UnityWebRequest.Result.Success)
+#else
+    if (uploadRequest.isNetworkError || uploadRequest.isHttpError)
+#endif
+        {
+            gameManager.uploadOutputText.text = "Upload Failed: " + uploadRequest.error;
+            Debug.Log("Upload Failed: " + uploadRequest.error);
+        }
+        else
+        {
+            byte[] zipFileData = uploadRequest.downloadHandler.data;
+            string zipSavePath = Path.Combine(Application.persistentDataPath, "bot.zip");
+            File.WriteAllBytes(zipSavePath, zipFileData);
+            gameManager.uploadOutputText.text = "Upload Success. Zip file saved at: " + zipSavePath;
+            Debug.Log("Upload Success. Zip file saved at: " + zipSavePath);
+
+            string extractPath = Path.Combine(Application.persistentDataPath, "bot_output");
+
+            if (!Directory.Exists(extractPath))
+            {
+                Directory.CreateDirectory(extractPath);
+            }
+
+            ZipFile.ExtractToDirectory(zipSavePath, extractPath, true);
+            Debug.Log("Zip extracted to: " + extractPath);
+            gameManager.uploadOutputText.text += "\nZip extracted to: " + extractPath;
+            File.Delete(zipSavePath);
+            playerName = playerName.Replace(" ","_").Replace(",","");
+            gameManager.botOpeningBookPath = Directory.GetFiles(extractPath, playerName + ".bin", SearchOption.AllDirectories)[0];
+            gameManager.botConfigPath = Directory.GetFiles(extractPath, playerName + ".json", SearchOption.AllDirectories)[0];
+            string[] binFiles = Directory.GetFiles(extractPath, playerName + ".bin", SearchOption.AllDirectories);
+            if (binFiles.Length > 0)
+            {
+                string binFilePath = binFiles[0];
+                FileInfo binInfo = new FileInfo(binFilePath);
+                if (binInfo.Length == 0)
+                {
+                    // If .bin file is 0KB, delete it and its corresponding .json file
+                    string jsonFilePath = Path.ChangeExtension(binFilePath, ".json");
+                    if (File.Exists(binFilePath)) File.Delete(binFilePath);
+                    if (File.Exists(jsonFilePath)) File.Delete(jsonFilePath);
+                    Debug.LogWarning("Bot .bin file is empty (0KB). Player not found in PGN file. Files deleted.");
+                    gameManager.uploadOutputText.text = "\nBot .bin file was empty. Player not found in PGN. Deleted files.";
+                    yield break;
+                }
+            }
+            else
+            {
+                Debug.LogWarning("No .bin file found in extracted folder.");
+                gameManager.uploadOutputText.text += "\nNo .bin file found in extracted folder.";
+                yield break;
+            }
+            gameManager.botPath = extractPath;
+            gameManager.HidePGNUploaderPopup();
+            if(gameManager.isVsAIAsWhite){
+                StartGameVsAIAsWhite();
+            }
+
+            if(gameManager.isVsAIAsBlack){
+                StartGameVsAIAsBlack();
+            }
+        }
+    }
+
+    public void StartGameVsAIAsWhite()
+    {
+        playVsAIAsBlackButton.interactable = false;
+        playMultiplayerButton.interactable = false;
+        PlacePieces(true, false);
+    }
+
+    public void StartGameVsAIAsBlack()
+    {
+        Vector3 originalPosition = boardObject.transform.position;
+        playMultiplayerButton.interactable = false;
+        playVsAIAsWhiteButton.interactable = false;
+        boardObject.transform.Rotate(0, 0, 180);
+        boardObject.transform.position = new Vector3(-originalPosition.x, -originalPosition.y, 0);
+        PlacePieces(false, true);
+        EngineMove(currentFen, 0, 0);
     }
 
 }

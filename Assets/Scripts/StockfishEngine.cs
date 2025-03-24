@@ -1,60 +1,60 @@
-using System.Diagnostics;
+using System.Collections;
 using System.IO;
 using UnityEngine;
-using Debug = UnityEngine.Debug;
+using UnityEngine.Networking;
+using System.Collections.Generic;
+
 
 public class StockfishEngine
 {
-    
-    public string GetBestMove(string fen, int depth)
+
+    public IEnumerator GetBestMove(string fen, string binFilePath, string configFilePath, System.Action<string> callback)
     {
-        Process stockfish = new Process();
-        string stockfishPath = Path.Combine(Application.streamingAssetsPath, "stockfish-windows-x86-64-avx2.exe");
-        if (!File.Exists(stockfishPath))
-        {
-            Debug.Log("Error: Stockfish executable not found at " + stockfishPath);
-            return "";
-        }
-        stockfish.StartInfo.FileName = stockfishPath;
-        stockfish.StartInfo.RedirectStandardInput = true;
-        stockfish.StartInfo.RedirectStandardOutput = true;
-        stockfish.StartInfo.UseShellExecute = false;
-        stockfish.StartInfo.CreateNoWindow = true;
-        stockfish.Start();
+        string url = "http://127.0.0.1:8000/get_bot_move";
 
-        // Initialize Stockfish
-        stockfish.StandardInput.WriteLine("uci");
-        stockfish.StandardInput.Flush();
-
-        // Wait for "uciok"
-        while (!stockfish.StandardOutput.EndOfStream)
+        if (!File.Exists(binFilePath) || !File.Exists(configFilePath))
         {
-            string line = stockfish.StandardOutput.ReadLine();
-            if (line == "uciok") break;
+            Debug.LogError("Missing bin or config file.");
+            callback("");
+            yield break;
         }
 
-        // Send FEN position
-        stockfish.StandardInput.WriteLine($"position fen {fen}");
-        stockfish.StandardInput.Flush();
+        // Read binary files into byte arrays
+        byte[] binData = File.ReadAllBytes(binFilePath);
+        byte[] configData = File.ReadAllBytes(configFilePath);
 
-        // Start search
-        stockfish.StandardInput.WriteLine($"go depth {depth}");
-        stockfish.StandardInput.Flush();
-
-        // Read best move
-        string bestMoveStr = "";
-        while (!stockfish.StandardOutput.EndOfStream)
+        // Build multipart form
+        List<IMultipartFormSection> formData = new List<IMultipartFormSection>
         {
-            string line = stockfish.StandardOutput.ReadLine();
-            if (line.StartsWith("bestmove"))
-            {
-                bestMoveStr = line.Split(' ')[1]; // Extract move
-                break;
-            }
-        }
-        Debug.Log("Best move from stockfish based on fen string "+fen+" is "+bestMoveStr);
+            new MultipartFormFileSection("bin_file", binData, Path.GetFileName(binFilePath), "application/octet-stream"),
+            new MultipartFormFileSection("config_file", configData, Path.GetFileName(configFilePath), "text/plain"),
+            new MultipartFormDataSection("fen", fen)
+        };
 
-        stockfish.Close();
-        return bestMoveStr;
+        UnityWebRequest request = UnityWebRequest.Post(url, formData);
+
+        // Send request
+        yield return request.SendWebRequest();
+
+        // Handle response
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            string responseText = request.downloadHandler.text;
+            UciMoveResponse response = JsonUtility.FromJson<UciMoveResponse>(responseText);
+            Debug.Log("Best move from server: " + response.uci_move);
+            callback(response.uci_move);
+        }
+        else
+        {
+            Debug.LogError("Request failed: " + request.error);
+            callback("");
+        }
+    }
+
+    // JSON structure for response
+    [System.Serializable]
+    public class UciMoveResponse
+    {
+        public string uci_move;
     }
 }
