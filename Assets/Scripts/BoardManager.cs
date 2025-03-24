@@ -1007,7 +1007,7 @@ public class BoardManager : MonoBehaviour
             Debug.Log("Zip extracted to: " + extractPath);
             gameManager.uploadOutputText.text += "\nZip extracted to: " + extractPath;
             File.Delete(zipSavePath);
-            playerName = playerName.Replace(" ","_").Replace(",","");
+            playerName = playerName.Replace(" ", "_").Replace(",", "");
             gameManager.botOpeningBookPath = Directory.GetFiles(extractPath, playerName + ".bin", SearchOption.AllDirectories)[0];
             gameManager.botConfigPath = Directory.GetFiles(extractPath, playerName + ".json", SearchOption.AllDirectories)[0];
             string[] binFiles = Directory.GetFiles(extractPath, playerName + ".bin", SearchOption.AllDirectories);
@@ -1034,11 +1034,13 @@ public class BoardManager : MonoBehaviour
             }
             gameManager.botPath = extractPath;
             gameManager.HidePGNUploaderPopup();
-            if(gameManager.isVsAIAsWhite){
+            if (gameManager.isVsAIAsWhite)
+            {
                 StartGameVsAIAsWhite();
             }
 
-            if(gameManager.isVsAIAsBlack){
+            if (gameManager.isVsAIAsBlack)
+            {
                 StartGameVsAIAsBlack();
             }
         }
@@ -1046,8 +1048,9 @@ public class BoardManager : MonoBehaviour
 
     public void StartGameVsAIAsWhite()
     {
-        playVsAIAsBlackButton.interactable = false;
         playMultiplayerButton.interactable = false;
+        playVsAIAsWhiteButton.interactable = false;
+        playVsAIAsBlackButton.interactable = false;
         PlacePieces(true, false);
     }
 
@@ -1056,6 +1059,7 @@ public class BoardManager : MonoBehaviour
         Vector3 originalPosition = boardObject.transform.position;
         playMultiplayerButton.interactable = false;
         playVsAIAsWhiteButton.interactable = false;
+        playVsAIAsBlackButton.interactable = false;
         boardObject.transform.Rotate(0, 0, 180);
         boardObject.transform.position = new Vector3(-originalPosition.x, -originalPosition.y, 0);
         PlacePieces(false, true);

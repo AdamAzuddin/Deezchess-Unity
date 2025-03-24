@@ -3905,6 +3905,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playVsAIAsWhiteButton: {fileID: 1544878947}
   playVsAIAsBlackButton: {fileID: 754338641}
+  playMultiplayerButton: {fileID: 683533569}
   boardManager: {fileID: 985776844}
 --- !u!1 &707660173
 GameObject:
@@ -5434,6 +5435,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playVsAIAsWhiteButton: {fileID: 0}
   playVsAIAsBlackButton: {fileID: 0}
+  playMultiplayerButton: {fileID: 0}
   boardManager: {fileID: 0}
 --- !u!1 &921887826
 GameObject:
