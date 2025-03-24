@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -33,24 +34,31 @@ public class Pawn : Piece
         if (hasMoved)
         {
             PieceColor enemyColor = pieceColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
-            Debug.Log("Fen inside pawn onEndDrag: "+boardManager.currentFen);
+            Debug.Log("Fen inside pawn onEndDrag: " + boardManager.currentFen);
             int direction = pieceColor == PieceColor.White ? -8 : 8;
             Square enPassantCapturedSquare = boardManager.gameManager.GetSquareByIndex(targetSquare.index + direction);
-
-            // Capture en passant if the square contains an enemy pawn
-            if (enPassantCapturedSquare.occupiedPiece != null &&
-                enPassantCapturedSquare.occupiedPiece.pieceType == PieceType.Pawn &&
-                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor)
+            int rank = enPassantCapturedSquare.index / 8;
+            Boolean validEnPassant = true;
+            // Check if target square is the promotion square
+            if (pieceColor == PieceColor.White && rank + 1 == 7)
             {
-                Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
-                Debug.Log("Captured en passantly");
-                enPassantCapturedSquare.occupiedPiece = null;
+                validEnPassant = false;
+            }
+            if (pieceColor == PieceColor.Black && rank - 1 == 0)
+            {
+                validEnPassant = false;
             }
 
-            // remove the destroyed pawn from the fen
-
-            boardManager.currentFen = boardManager.RemovePieceFromFen(boardManager.currentFen, enPassantCapturedSquare.index);
-            Debug.Log("Fen string after en passant move: " + boardManager.currentFen);
+            // Capture en passant if the square contains an enemy pawn and it's not on promotion square
+            if (enPassantCapturedSquare.occupiedPiece != null &&
+                enPassantCapturedSquare.occupiedPiece.pieceType == PieceType.Pawn &&
+                enPassantCapturedSquare.occupiedPiece.pieceColor == enemyColor && validEnPassant)
+            {
+                Destroy(enPassantCapturedSquare.occupiedPiece.gameObject);
+                enPassantCapturedSquare.occupiedPiece = null;
+                boardManager.currentFen = boardManager.RemovePieceFromFen(boardManager.currentFen, enPassantCapturedSquare.index);
+                Debug.Log("Fen string after en passant move: " + boardManager.currentFen);
+            }
         }
         else
         {
