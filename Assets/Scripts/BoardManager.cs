@@ -866,7 +866,7 @@ public class BoardManager : MonoBehaviour
             FindSquareByIndex(kingTargetSquareIndex).occupiedPiece = blackKing;
             FindSquareByIndex(60).occupiedPiece = null;
             MovePiece(60, kingTargetSquareIndex, true);
-            castlingRights = castlingRights.Replace("q", "").Replace("q", "");
+            castlingRights = castlingRights.Replace("k", "").Replace("q", "");
         }
         if (castlingRights == "")
         {
