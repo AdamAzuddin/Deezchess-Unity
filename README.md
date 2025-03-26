@@ -3,8 +3,6 @@
 ### 🏆 Play Against Your Own AI!  
 DeezChess lets you play chess against a bot that mimics your playstyle! Upload a PGN of your games, and the AI will generate an opening book + play moves based on your past games.  
 
-🔗 **Play the game here:** [Itch.io Link]  
-
 ---  
 
 ## 🛠️ Tech Stack  
